@@ -1,0 +1,11 @@
+syntax = 'proto3';
+package sgardpb;
+
+import "google/protobuf/timestamp.proto";
+
+// Header defines common metadata for messages in sgard.
+message Header {
+	uint32 version = 1;
+	google.protobuf.Timestamp created = 2;
+	google.protobuf.Timestamp updated = 3;
+}
