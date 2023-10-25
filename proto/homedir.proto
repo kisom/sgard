@@ -4,7 +4,8 @@ package sgardpb;
 import 'header.proto';
 import 'path.proto';
 
-message HomeDir {
+message HomeDir
+{
 	Header header = 1;
 
 	map<string, Source> files = 5;

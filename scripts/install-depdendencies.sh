@@ -15,7 +15,7 @@
 
 set -eu
 
-install_debianesque () {
+install_debianesque() {
 	echo "[+] distribution is ${DISTRIB_ID}, choosing Debianesque install."
 
 	echo "[+] installing tools"
@@ -28,7 +28,7 @@ install_debianesque () {
 	sudo apt-get install protobuf-compiler-grpc grpc-proto libgrpc++-dev
 }
 
-install_redhat () {
+install_redhat() {
 	echo "[+] distribution is ${DISTRIB_ID}, choosing Redhat install."
 	echo "[!] WARNING: installation for Redhat systems is unverified."
 
@@ -39,7 +39,7 @@ install_redhat () {
 	sudo dnf install protobuf-compiler libprotobuf-dev
 }
 
-install_alpine () {
+install_alpine() {
 	echo "[+] distribution is ${DISTRIB_ID}, choosing Alpine install."
 	echo "[!] WARNING: installation for Alpine systems is unverified."
 
@@ -50,7 +50,7 @@ install_alpine () {
 	sudo dnf install sdl2-dev freetype-dev protobuf-compiler-grpc
 }
 
-install_macos () {
+install_macos() {
 	# TODO: consider supporting macports?
 	echo "[+] host system is MacOS"
 
@@ -61,20 +61,15 @@ install_macos () {
 	# TODO: look up proper package names in homebrew
 }
 
-
-install_linux () {
+install_linux() {
 	echo "[+] host system is Linux"
 	[[ -f "/etc/lsb-release" ]] && source /etc/lsb-release
-	if [ -z "${DISTRIB_ID}" ]
-	then
-		if [ -d /etc/apt ]
-		then
+	if [ -z "${DISTRIB_ID}" ]; then
+		if [ -d /etc/apt ]; then
 			DISTRIB_ID="apt-based"
-		elif [ -f /etc/alpine-release ]
-		then
+		elif [ -f /etc/alpine-release ]; then
 			DISTRIB_ID=Alpine
-		elif [ -d /etc/dnf -o /etc/yum.repos.d ]
-		then
+		elif [ -d /etc/dnf -o /etc/yum.repos.d ]; then
 			# I don't use Fedora, this is based on a cursory
 			# glance at the filesystem on a Docker image.
 			DISTRIB_ID="Fedora"
@@ -82,25 +77,22 @@ install_linux () {
 	fi
 
 	case ${DISTRIB_ID} in
-		Ubuntu)		install_debianesque ;;
-		Debian)		install_debianesque ;;
-		apt-based)	install_debianesque ;;
-		Fedora)		install_redhat ;;
-		Alpine)		install_alpine ;;
+	Ubuntu) install_debianesque ;;
+	Debian) install_debianesque ;;
+	apt-based) install_debianesque ;;
+	Fedora) install_redhat ;;
+	Alpine) install_alpine ;;
 
-		*)
-			echo "[!] distribution ${DISTRIB_ID} isn't supported in this script." > /dev/null
-			;;
+	*)
+		echo "[!] distribution ${DISTRIB_ID} isn't supported in this script." >/dev/null
+		;;
 	esac
 }
 
-
 case "$(uname -s)" in
-	Linux)		install_linux ;;
-	Darwin)		install_macos ;;
-	*)
-		echo "[!] platform $(uname -s) isn't supported in this script." > /dev/null
-		;;
+Linux) install_linux ;;
+Darwin) install_macos ;;
+*)
+	echo "[!] platform $(uname -s) isn't supported in this script." >/dev/null
+	;;
 esac
-
-

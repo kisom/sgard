@@ -17,7 +17,7 @@ main(int argc, char *argv[])
 
 	auto parseResult = flag->Parse(argc, argv);
 	if (parseResult != scsl::Flags::ParseStatus::OK) {
-		std::cerr << "failed to parse flags: " 
+		std::cerr << "failed to parse flags: "
 			  << scsl::Flags::ParseStatusToString(parseResult)
 			  << "\n";
 		flag->Usage(std::cerr, 1);

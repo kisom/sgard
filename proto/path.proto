@@ -6,26 +6,28 @@ import "google/protobuf/timestamp.proto";
 
 enum PathType {
 	PATHTYPE_UNSPECIFIED = 0;
-	PATHTYPE_FILE = 1;
-	PATHTYPE_DIRECTORY = 2;
-	PATHTYPE_LINK = 3;
+	PATHTYPE_FILE        = 1;
+	PATHTYPE_DIRECTORY   = 2;
+	PATHTYPE_LINK        = 3;
 };
 
-message FilePath {
+message FilePath
+{
 	Header header = 1;
 
 	string source_path = 2;
-	string dest_path = 3;
+	string dest_path   = 3;
 	// todo: add mode, action (e.g. copy vs link)
 };
 
 
-message Source {
-	Header header = 1;
+message Source
+{
+	Header header      = 1;
 	PathType path_type = 2;
 
-	oneof path {
+	oneof path
+	{
 		FilePath file = 5;
 	};
 };
-
