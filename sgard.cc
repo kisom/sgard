@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#include <scsl/Flag.h>
+#include <scsl/Flags.h>
 
 
 int
