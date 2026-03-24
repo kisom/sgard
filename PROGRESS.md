@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 2 in progress. Steps 9–12b complete, ready for Step 13.
+**Phase:** Phase 2 in progress. Steps 9–13 complete, ready for Step 14.
 
 **Last updated:** 2026-03-23
 
@@ -42,7 +42,7 @@ Phase 2: gRPC Remote Sync.
 
 ## Up Next
 
-Step 13: Client Library (No Auth).
+Step 14: SSH Key Auth.
 
 ## Known Issues / Decisions Deferred
 
@@ -73,3 +73,4 @@ Step 13: Client Library (No Auth).
 | 2026-03-23 | 11 | Proto-manifest conversion: ManifestToProto/ProtoToManifest with round-trip tests. |
 | 2026-03-23 | 12 | gRPC server: 5 RPC handlers (push/pull manifest+blobs, prune), bufconn tests, store.List. |
 | 2026-03-23 | 12b | Directory recursion in Add, mirror up/down commands, 7 tests. |
+| 2026-03-23 | 13 | Client library: Push, Pull, Prune with chunked blob streaming. 6 integration tests. |

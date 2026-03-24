@@ -143,8 +143,8 @@ Depends on Steps 9, 10, 11.
 
 Depends on Step 12.
 
-- [ ] `client/client.go`: Client struct, `Push()`, `Pull()` methods
-- [ ] `client/client_test.go`: integration test against in-process server
+- [x] `client/client.go`: Client struct, `Push()`, `Pull()`, `Prune()` methods
+- [x] `client/client_test.go`: integration tests (push+pull cycle, server newer, up-to-date, prune)
 
 ### Step 14: SSH Key Auth
 
