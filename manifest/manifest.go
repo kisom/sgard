@@ -11,21 +11,41 @@ import (
 
 // Entry represents a single tracked file, directory, or symlink.
 type Entry struct {
-	Path    string    `yaml:"path"`
-	Hash    string    `yaml:"hash,omitempty"`
-	Type    string    `yaml:"type"`
-	Mode    string    `yaml:"mode,omitempty"`
-	Target  string    `yaml:"target,omitempty"`
-	Updated time.Time `yaml:"updated"`
+	Path          string    `yaml:"path"`
+	Hash          string    `yaml:"hash,omitempty"`
+	PlaintextHash string    `yaml:"plaintext_hash,omitempty"`
+	Encrypted     bool      `yaml:"encrypted,omitempty"`
+	Type          string    `yaml:"type"`
+	Mode          string    `yaml:"mode,omitempty"`
+	Target        string    `yaml:"target,omitempty"`
+	Updated       time.Time `yaml:"updated"`
+}
+
+// KekSlot describes a single KEK source that can unwrap the DEK.
+type KekSlot struct {
+	Type         string `yaml:"type"`                    // "passphrase" or "fido2"
+	Argon2Time   int    `yaml:"argon2_time,omitempty"`   // passphrase only
+	Argon2Memory int    `yaml:"argon2_memory,omitempty"` // passphrase only (KiB)
+	Argon2Threads int   `yaml:"argon2_threads,omitempty"` // passphrase only
+	CredentialID string `yaml:"credential_id,omitempty"` // fido2 only (base64)
+	Salt         string `yaml:"salt"`                    // base64-encoded
+	WrappedDEK   string `yaml:"wrapped_dek"`             // base64-encoded
+}
+
+// Encryption holds the encryption configuration embedded in the manifest.
+type Encryption struct {
+	Algorithm string              `yaml:"algorithm"`
+	KekSlots  map[string]*KekSlot `yaml:"kek_slots"`
 }
 
 // Manifest is the top-level manifest describing all tracked entries.
 type Manifest struct {
-	Version int       `yaml:"version"`
-	Created time.Time `yaml:"created"`
-	Updated time.Time `yaml:"updated"`
-	Message string    `yaml:"message,omitempty"`
-	Files   []Entry   `yaml:"files"`
+	Version    int         `yaml:"version"`
+	Created    time.Time   `yaml:"created"`
+	Updated    time.Time   `yaml:"updated"`
+	Message    string      `yaml:"message,omitempty"`
+	Files      []Entry     `yaml:"files"`
+	Encryption *Encryption `yaml:"encryption,omitempty"`
 }
 
 // New creates a new empty manifest with Version 1 and timestamps set to now.

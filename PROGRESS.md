@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 2 complete. Phase 3 (Encryption) planned, ready for Step 17.
+**Phase:** Phase 3 in progress. Step 17 complete, ready for Step 18.
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Phase 3: Encryption. Step 17 (passphrase-only core) is next.
+Step 18: FIDO2 support.
 
 ## Known Issues / Decisions Deferred
 
@@ -78,3 +78,4 @@ Phase 3: Encryption. Step 17 (passphrase-only core) is next.
 | 2026-03-24 | 16 | Polish: updated all docs, flake.nix (sgardd + vendorHash), goreleaser (both binaries), e2e push/pull test with auth. |
 | 2026-03-24 | — | JWT token auth implemented (transparent auto-renewal, XDG token cache, ReauthChallenge fast path). |
 | 2026-03-24 | — | Phase 3 encryption design: selective per-file encryption, KEK slots (passphrase + fido2/label), manifest-embedded config. |
+| 2026-03-24 | 17 | Encryption core: Argon2id KEK, XChaCha20 DEK wrap/unwrap, selective per-file encrypt in Add/Checkpoint/Restore/Diff/Status. 10 tests. |

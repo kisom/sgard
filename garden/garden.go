@@ -22,6 +22,7 @@ type Garden struct {
 	root         string // repository root directory
 	manifestPath string // path to manifest.yaml
 	clock        clockwork.Clock
+	dek          []byte // unlocked data encryption key (nil if not unlocked)
 }
 
 // Init creates a new sgard repository at root. It creates the directory
@@ -140,7 +141,8 @@ func (g *Garden) DeleteBlob(hash string) error {
 // addEntry adds a single file or symlink to the manifest. The abs path must
 // already be resolved and info must come from os.Lstat. If skipDup is true,
 // already-tracked paths are silently skipped instead of returning an error.
-func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup bool) error {
+// If encrypt is true, the file blob is encrypted before storing.
+func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup, encrypt bool) error {
 	tilded := toTildePath(abs)
 
 	if g.findEntry(tilded) != nil {
@@ -170,6 +172,20 @@ func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup b
 		if err != nil {
 			return fmt.Errorf("reading file %s: %w", abs, err)
 		}
+
+		if encrypt {
+			if g.dek == nil {
+				return fmt.Errorf("DEK not unlocked; cannot encrypt %s", abs)
+			}
+			entry.PlaintextHash = plaintextHash(data)
+			ct, err := g.encryptBlob(data)
+			if err != nil {
+				return fmt.Errorf("encrypting %s: %w", abs, err)
+			}
+			data = ct
+			entry.Encrypted = true
+		}
+
 		hash, err := g.store.Write(data)
 		if err != nil {
 			return fmt.Errorf("storing blob for %s: %w", abs, err)
@@ -186,7 +202,14 @@ func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup b
 // to an absolute path, inspected for its type, and added to the manifest.
 // Regular files are hashed and stored in the blob store. Directories are
 // recursively walked and all leaf files and symlinks are added individually.
-func (g *Garden) Add(paths []string) error {
+// If encrypt is true, file blobs are encrypted before storing (requires
+// the DEK to be unlocked).
+func (g *Garden) Add(paths []string, encrypt ...bool) error {
+	enc := len(encrypt) > 0 && encrypt[0]
+	if enc && g.dek == nil {
+		return fmt.Errorf("DEK not unlocked; run sgard encrypt init or unlock first")
+	}
+
 	now := g.clock.Now().UTC()
 
 	for _, p := range paths {
@@ -201,25 +224,24 @@ func (g *Garden) Add(paths []string) error {
 		}
 
 		if info.IsDir() {
-			// Recursively walk the directory, adding all files and symlinks.
 			err := filepath.WalkDir(abs, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return err
 				}
 				if d.IsDir() {
-					return nil // skip directory entries themselves
+					return nil
 				}
 				fi, err := os.Lstat(path)
 				if err != nil {
 					return fmt.Errorf("stat %s: %w", path, err)
 				}
-				return g.addEntry(path, fi, now, true)
+				return g.addEntry(path, fi, now, true, enc)
 			})
 			if err != nil {
 				return fmt.Errorf("walking directory %s: %w", abs, err)
 			}
 		} else {
-			if err := g.addEntry(abs, info, now, false); err != nil {
+			if err := g.addEntry(abs, info, now, false, enc); err != nil {
 				return err
 			}
 		}
@@ -268,13 +290,35 @@ func (g *Garden) Checkpoint(message string) error {
 			if err != nil {
 				return fmt.Errorf("reading %s: %w", abs, err)
 			}
-			hash, err := g.store.Write(data)
-			if err != nil {
-				return fmt.Errorf("storing blob for %s: %w", abs, err)
-			}
-			if hash != entry.Hash {
-				entry.Hash = hash
-				entry.Updated = now
+
+			if entry.Encrypted {
+				// For encrypted entries, check plaintext hash to detect changes.
+				ptHash := plaintextHash(data)
+				if ptHash != entry.PlaintextHash {
+					if g.dek == nil {
+						return fmt.Errorf("DEK not unlocked; cannot re-encrypt %s", abs)
+					}
+					ct, err := g.encryptBlob(data)
+					if err != nil {
+						return fmt.Errorf("encrypting %s: %w", abs, err)
+					}
+					hash, err := g.store.Write(ct)
+					if err != nil {
+						return fmt.Errorf("storing blob for %s: %w", abs, err)
+					}
+					entry.Hash = hash
+					entry.PlaintextHash = ptHash
+					entry.Updated = now
+				}
+			} else {
+				hash, err := g.store.Write(data)
+				if err != nil {
+					return fmt.Errorf("storing blob for %s: %w", abs, err)
+				}
+				if hash != entry.Hash {
+					entry.Hash = hash
+					entry.Updated = now
+				}
 			}
 
 		case "link":
@@ -329,7 +373,12 @@ func (g *Garden) Status() ([]FileStatus, error) {
 			if err != nil {
 				return nil, fmt.Errorf("hashing %s: %w", abs, err)
 			}
-			if hash != entry.Hash {
+			// For encrypted entries, compare against plaintext hash.
+			compareHash := entry.Hash
+			if entry.Encrypted && entry.PlaintextHash != "" {
+				compareHash = entry.PlaintextHash
+			}
+			if hash != compareHash {
 				results = append(results, FileStatus{Path: entry.Path, State: "modified"})
 			} else {
 				results = append(results, FileStatus{Path: entry.Path, State: "ok"})
@@ -427,6 +476,16 @@ func (g *Garden) restoreFile(abs string, entry *manifest.Entry) error {
 	data, err := g.store.Read(entry.Hash)
 	if err != nil {
 		return fmt.Errorf("reading blob for %s: %w", entry.Path, err)
+	}
+
+	if entry.Encrypted {
+		if g.dek == nil {
+			return fmt.Errorf("DEK not unlocked; cannot decrypt %s", entry.Path)
+		}
+		data, err = g.decryptBlob(data)
+		if err != nil {
+			return fmt.Errorf("decrypting %s: %w", entry.Path, err)
+		}
 	}
 
 	mode, err := parseMode(entry.Mode)

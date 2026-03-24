@@ -181,17 +181,17 @@ Depends on Steps 13, 14.
 
 ### Step 17: Encryption Core (Passphrase Only)
 
-- [ ] `manifest/manifest.go`: add `Encrypted`, `PlaintextHash` fields to Entry; add `Encryption` section with `KekSlots` map to Manifest
-- [ ] `garden/encrypt.go`: `EncryptInit(passphrase string) error` — generate DEK, derive KEK via Argon2id, wrap DEK, store in manifest encryption section
-- [ ] `garden/encrypt.go`: `UnlockDEK() ([]byte, error)` — read slots, try passphrase, unwrap DEK; cache in memory for command duration
-- [ ] `garden/encrypt.go`: encrypt/decrypt helpers using XChaCha20-Poly1305 (nonce + seal/open)
-- [ ] `garden/garden.go`: modify Add to accept `--encrypt` flag — encrypt blob before storing, set `encrypted: true` and `plaintext_hash` on entry
-- [ ] `garden/garden.go`: modify Checkpoint to re-encrypt changed encrypted entries
-- [ ] `garden/restore.go`: modify Restore to decrypt encrypted blobs before writing
-- [ ] `garden/diff.go`: modify Diff to decrypt stored blob before diffing
-- [ ] `garden/garden.go`: modify Status to use `plaintext_hash` for encrypted entries
-- [ ] Tests: round-trip add-encrypted → checkpoint → restore, verify decrypted content matches; status on encrypted entry; diff on encrypted entry
-- [ ] Verify: `go test ./... && go vet ./... && golangci-lint run ./...`
+- [x] `manifest/manifest.go`: add `Encrypted`, `PlaintextHash` fields to Entry; add `Encryption` section with `KekSlots` map to Manifest
+- [x] `garden/encrypt.go`: `EncryptInit(passphrase string) error` — generate DEK, derive KEK via Argon2id, wrap DEK, store in manifest encryption section
+- [x] `garden/encrypt.go`: `UnlockDEK(prompt) error` — read slots, try passphrase, unwrap DEK; cache in memory for command duration
+- [x] `garden/encrypt.go`: encrypt/decrypt helpers using XChaCha20-Poly1305 (nonce + seal/open)
+- [x] `garden/garden.go`: modify Add to accept encrypt flag — encrypt blob before storing, set `encrypted: true` and `plaintext_hash` on entry
+- [x] `garden/garden.go`: modify Checkpoint to re-encrypt changed encrypted entries (compares plaintext_hash)
+- [x] `garden/garden.go`: modify Restore to decrypt encrypted blobs before writing
+- [x] `garden/diff.go`: modify Diff to decrypt stored blob before diffing
+- [x] `garden/garden.go`: modify Status to use `plaintext_hash` for encrypted entries
+- [x] Tests: 10 encryption tests (init, persist, unlock, add-encrypted, restore round-trip, checkpoint, status, diff, requires-DEK)
+- [x] Verify: `go test ./... && go vet ./... && golangci-lint run ./...`
 
 ### Step 18: FIDO2 Support
 

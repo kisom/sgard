@@ -37,7 +37,7 @@ func (g *Garden) MirrorUp(paths []string) error {
 			if lstatErr != nil {
 				return fmt.Errorf("stat %s: %w", path, lstatErr)
 			}
-			return g.addEntry(path, fi, now, true)
+			return g.addEntry(path, fi, now, true, false)
 		})
 		if err != nil {
 			return fmt.Errorf("walking directory %s: %w", abs, err)

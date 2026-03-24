@@ -33,6 +33,16 @@ func (g *Garden) Diff(path string) (string, error) {
 		return "", fmt.Errorf("reading stored blob: %w", err)
 	}
 
+	if entry.Encrypted {
+		if g.dek == nil {
+			return "", fmt.Errorf("DEK not unlocked; cannot diff encrypted file %s", tilded)
+		}
+		stored, err = g.decryptBlob(stored)
+		if err != nil {
+			return "", fmt.Errorf("decrypting stored blob: %w", err)
+		}
+	}
+
 	current, err := os.ReadFile(abs)
 	if err != nil {
 		return "", fmt.Errorf("reading current file: %w", err)
