@@ -48,29 +48,39 @@ updated: "2026-03-23T14:30:00Z"
 message: "pre-upgrade checkpoint"   # optional
 
 files:
-  - path: ~/.bashrc                 # original location (default restore target)
+  - path: ~/.bashrc                 # plaintext file
     hash: a1b2c3d4e5f6...          # SHA-256 of file contents
-    type: file                      # file | directory | link
-    mode: "0644"                    # permissions (quoted to avoid YAML coercion)
-    updated: "2026-03-23T14:30:00Z" # last checkpoint time for this file
-
-  - path: ~/.config/nvim
-    type: directory
-    mode: "0755"
+    type: file
+    mode: "0644"
     updated: "2026-03-23T14:30:00Z"
-    # directories have no hash or blob — they're structural entries
 
   - path: ~/.vimrc
     type: link
-    target: ~/.config/nvim/init.vim  # symlink target
+    target: ~/.config/nvim/init.vim
     updated: "2026-03-23T14:30:00Z"
-    # links have no hash or blob — just the target path
 
-  - path: ~/.ssh/config
-    hash: d4e5f6a1b2c3...
+  - path: ~/.ssh/config             # encrypted file
+    hash: f8e9d0c1...              # SHA-256 of encrypted blob
+    plaintext_hash: e5f6a7...      # SHA-256 of plaintext
+    encrypted: true
     type: file
     mode: "0600"
     updated: "2026-03-23T14:30:00Z"
+
+# Encryption config — only present if sgard encrypt init has been run.
+# Travels with the manifest so a new machine can decrypt after pull.
+encryption:
+  algorithm: xchacha20-poly1305
+  kek_sources:
+    - type: fido2
+      salt: "base64-encoded-16-byte-salt"
+      wrapped_dek: "base64-encoded-nonce+ciphertext+tag"
+    - type: passphrase
+      argon2_time: 3
+      argon2_memory: 65536
+      argon2_threads: 4
+      salt: "base64-encoded-16-byte-salt"
+      wrapped_dek: "base64-encoded-nonce+ciphertext+tag"
 ```
 
 ### Blob Store
@@ -308,9 +318,10 @@ DEK (Data Encryption Key) — random, encrypts/decrypts file blobs
 
 **DEK (Data Encryption Key):**
 - 256-bit random key, generated once when encryption is first enabled
-- Used with XChaCha20-Poly1305 (AEAD) to encrypt every blob
+- Used with XChaCha20-Poly1305 (AEAD) to encrypt file blobs
 - Never stored in plaintext — always wrapped by the KEK
-- Stored as `<repo>/dek.enc` (KEK-encrypted)
+- Each KEK source stores its own wrapped copy in the manifest
+  (`encryption.kek_sources[].wrapped_dek`, base64-encoded)
 
 **KEK (Key Encryption Key):**
 - Derived from the user's secret
@@ -326,13 +337,13 @@ Two methods. A repo may have either or both:
 
 **Passphrase:**
 - KEK = Argon2id(passphrase, salt, time=3, memory=64MB, threads=4)
-- Salt stored at `<repo>/kek-passphrase.salt` (16 random bytes)
-- Argon2id parameters stored in `encryption.yaml` for forward compat
+- Salt and Argon2id parameters stored in the manifest
+  (`encryption.kek_sources[]` with `type: passphrase`)
 
 **FIDO2 hmac-secret:**
 - KEK = HMAC-SHA256 output from the FIDO2 authenticator
 - The authenticator computes `HMAC(device_secret, salt)` where the salt
-  is stored at `<repo>/kek-fido2.salt`
+  is stored in the manifest (`encryption.kek_sources[]` with `type: fido2`)
 - Requires a FIDO2 key that supports the `hmac-secret` extension
 - User touch is required to derive the KEK
 
@@ -406,37 +417,30 @@ behavior), and `plaintext_hash` and `encrypted` are omitted.
 
 ### DEK Storage
 
-The DEK is encrypted with the KEK using XChaCha20-Poly1305 and stored
-at `<repo>/dek.enc`:
+The DEK is wrapped (encrypted) by each KEK source using
+XChaCha20-Poly1305 and stored in the manifest as base64:
 
 ```
-[24-byte nonce][encrypted DEK + 16-byte tag]
+wrapped_dek = base64([24-byte nonce][encrypted DEK + 16-byte tag])
 ```
 
-### KEK Sources and Unlock Resolution
+Each KEK source in `encryption.kek_sources[]` carries its own
+`wrapped_dek`. This means the manifest is fully self-contained —
+pulling it to a new machine gives you everything needed to decrypt
+(given the user's secret).
 
-A repo can have one or both KEK sources. Each wraps the same DEK
-independently:
+### Unlock Resolution
 
-```
-<repo>/dek.enc.passphrase    # DEK wrapped by passphrase-derived KEK
-<repo>/dek.enc.fido2         # DEK wrapped by FIDO2-derived KEK
-```
+When sgard needs the DEK, it reads the `encryption` section of the
+manifest to discover which sources are configured, then tries them
+in preference order:
 
-Either source can unwrap the DEK. Adding a second source requires the
-DEK (unlocked by the existing source) to create the new wrapped copy.
-
-**Automatic unlock resolution (no user flags needed):**
-
-When sgard needs the DEK, it reads `encryption.yaml` to discover which
-sources are configured, then tries them in order:
-
-1. **FIDO2** (if `dek.enc.fido2` exists):
+1. **FIDO2** (if a `type: fido2` source exists):
    - Check if a FIDO2 device is connected
    - If yes → prompt for touch, derive KEK, unwrap DEK
    - If device not found or touch times out → fall through
 
-2. **Passphrase** (if `dek.enc.passphrase` exists):
+2. **Passphrase** (if a `type: passphrase` source exists):
    - Prompt for passphrase on stdin
    - Derive KEK via Argon2id, unwrap DEK
 
@@ -447,31 +451,14 @@ passphrase is the fallback for when the FIDO2 key isn't physically
 present (e.g., on a different machine). The user never specifies which
 method to use; sgard figures it out.
 
-### Repo Configuration
-
-Encryption config stored at `<repo>/encryption.yaml`:
-
-```yaml
-algorithm: xchacha20-poly1305
-kek_sources:
-  - type: fido2
-    salt_file: kek-fido2.salt
-    dek_file: dek.enc.fido2
-  - type: passphrase
-    argon2_time: 3
-    argon2_memory: 65536  # KiB
-    argon2_threads: 4
-    salt_file: kek-passphrase.salt
-    dek_file: dek.enc.passphrase
-```
-
-The `kek_sources` list is ordered by preference (FIDO2 first). The
-presence of `encryption.yaml` indicates the repo has encryption
-capability. Individual files opt in via `--encrypt` at add time.
+The `kek_sources` list in the manifest is ordered by preference
+(FIDO2 first). The presence of the `encryption` section indicates the
+repo has encryption capability. Individual files opt in via `--encrypt`
+at add time.
 
 ### CLI Integration
 
-**Setting up encryption (creates DEK and wraps it):**
+**Setting up encryption (creates DEK, adds `encryption` to manifest):**
 ```sh
 sgard encrypt init                # passphrase only
 sgard encrypt init --fido2        # FIDO2 + passphrase fallback
@@ -480,7 +467,8 @@ sgard encrypt init --fido2        # FIDO2 + passphrase fallback
 When `--fido2` is specified, sgard creates both sources: the FIDO2
 wrap (primary) and immediately prompts for a passphrase to create the
 fallback wrap. This ensures the user is never locked out if they lose
-the FIDO2 key.
+the FIDO2 key. Both wrapped DEKs and salts are stored inline in the
+manifest as base64.
 
 Without `--fido2`, only the passphrase source is created.
 
@@ -536,9 +524,34 @@ daemon or on-disk secret, both of which expand the attack surface.
 
 ### Repos Without Encryption
 
-A repo with no `encryption.yaml` has no DEK and cannot have encrypted
-entries. The `--encrypt` flag on `add` will error, prompting the user
-to run `sgard encrypt init` first. All existing behavior is unchanged.
+A manifest with no `encryption` section has no DEK and cannot have
+encrypted entries. The `--encrypt` flag on `add` will error, prompting
+the user to run `sgard encrypt init` first. All existing behavior is
+unchanged.
+
+### Encryption and Remote Sync
+
+The server never has the DEK. Push/pull transfers the manifest
+(including the `encryption` section with wrapped DEKs and salts) and
+encrypted blobs as opaque bytes. The server cannot decrypt file
+contents.
+
+When pulling to a new machine:
+1. The manifest arrives with the `encryption` section intact
+2. The wrapped DEKs and salts are present in the manifest
+3. The user provides their passphrase (or touches their FIDO2 key)
+4. sgard derives the KEK, unwraps the DEK, decrypts blobs on restore
+
+No additional setup is needed on the new machine beyond having the
+passphrase or a FIDO2 key. The manifest carries everything.
+
+**FIDO2 cross-machine note:** FIDO2 hmac-secret is device-bound. A
+different physical key on machine B produces a different KEK, so the
+FIDO2 `wrapped_dek` from machine A won't unwrap. The passphrase
+fallback is what enables cross-machine decryption. A user who wants
+FIDO2 on multiple machines must run `sgard encrypt add-fido2` on each
+machine (which re-wraps the DEK with that machine's FIDO2 key and adds
+a new source to the manifest).
 
 ### Future: Manifest Signing
 
