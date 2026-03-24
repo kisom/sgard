@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 4 in progress. Steps 21–23 complete, ready for Step 24.
+**Phase:** Phase 4 in progress. Steps 21–24 complete, ready for Step 25.
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 24: DEK Rotation.
+Step 25: Real FIDO2 Hardware Binding.
 
 ## Known Issues / Decisions Deferred
 
@@ -87,3 +87,4 @@ Step 24: DEK Rotation.
 | 2026-03-24 | 21 | Lock/unlock toggle commands. garden/lock.go, cmd/sgard/lock.go, 6 tests. |
 | 2026-03-24 | 22 | Shell completion: cobra built-in, README docs for bash/zsh/fish. |
 | 2026-03-24 | 23 | TLS transport: sgardd --tls-cert/--tls-key, sgard --tls/--tls-ca, 2 integration tests. |
+| 2026-03-24 | 24 | DEK rotation: RotateDEK re-encrypts all blobs, re-wraps all slots, CLI command, 4 tests. |

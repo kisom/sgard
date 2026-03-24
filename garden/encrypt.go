@@ -213,6 +213,140 @@ func (g *Garden) ChangePassphrase(newPassphrase string) error {
 	return nil
 }
 
+// RotateDEK generates a new DEK, re-encrypts all encrypted blobs, and
+// re-wraps the new DEK with all existing KEK slots. The old DEK must
+// already be unlocked. A passphrase prompt is required to re-derive
+// the KEK for the passphrase slot. An optional FIDO2 device re-wraps
+// FIDO2 slots; FIDO2 slots without a matching device are dropped.
+func (g *Garden) RotateDEK(promptPassphrase func() (string, error), fido2Device ...FIDO2Device) error {
+	if g.dek == nil {
+		return fmt.Errorf("DEK not unlocked")
+	}
+
+	enc := g.manifest.Encryption
+	if enc == nil {
+		return fmt.Errorf("encryption not initialized")
+	}
+
+	oldDEK := g.dek
+
+	// Generate new DEK.
+	newDEK := make([]byte, dekSize)
+	if _, err := rand.Read(newDEK); err != nil {
+		return fmt.Errorf("generating new DEK: %w", err)
+	}
+
+	// Re-encrypt all encrypted blobs.
+	for i := range g.manifest.Files {
+		entry := &g.manifest.Files[i]
+		if !entry.Encrypted || entry.Hash == "" {
+			continue
+		}
+
+		// Read encrypted blob.
+		ciphertext, err := g.store.Read(entry.Hash)
+		if err != nil {
+			return fmt.Errorf("reading blob %s for %s: %w", entry.Hash, entry.Path, err)
+		}
+
+		// Decrypt with old DEK.
+		g.dek = oldDEK
+		plaintext, err := g.decryptBlob(ciphertext)
+		if err != nil {
+			return fmt.Errorf("decrypting %s: %w", entry.Path, err)
+		}
+
+		// Re-encrypt with new DEK.
+		g.dek = newDEK
+		newCiphertext, err := g.encryptBlob(plaintext)
+		if err != nil {
+			return fmt.Errorf("re-encrypting %s: %w", entry.Path, err)
+		}
+
+		// Write new blob.
+		newHash, err := g.store.Write(newCiphertext)
+		if err != nil {
+			return fmt.Errorf("writing re-encrypted blob for %s: %w", entry.Path, err)
+		}
+
+		entry.Hash = newHash
+		// PlaintextHash stays the same — the plaintext didn't change.
+	}
+
+	// Re-wrap new DEK with all existing KEK slots.
+	for name, slot := range enc.KekSlots {
+		var kek []byte
+
+		switch slot.Type {
+		case "passphrase":
+			if promptPassphrase == nil {
+				return fmt.Errorf("passphrase required to re-wrap slot %q", name)
+			}
+			passphrase, err := promptPassphrase()
+			if err != nil {
+				return fmt.Errorf("reading passphrase: %w", err)
+			}
+			salt, err := base64.StdEncoding.DecodeString(slot.Salt)
+			if err != nil {
+				return fmt.Errorf("decoding salt for slot %q: %w", name, err)
+			}
+			kek = derivePassphraseKEK(passphrase, salt, slot.Argon2Time, slot.Argon2Memory, slot.Argon2Threads)
+
+		case "fido2":
+			var device FIDO2Device
+			if len(fido2Device) > 0 {
+				device = fido2Device[0]
+			}
+			if device == nil || !device.Available() {
+				// Drop FIDO2 slots without a matching device.
+				delete(enc.KekSlots, name)
+				continue
+			}
+			credID, err := base64.StdEncoding.DecodeString(slot.CredentialID)
+			if err != nil {
+				delete(enc.KekSlots, name)
+				continue
+			}
+			if !device.MatchesCredential(credID) {
+				delete(enc.KekSlots, name)
+				continue
+			}
+			salt, err := base64.StdEncoding.DecodeString(slot.Salt)
+			if err != nil {
+				delete(enc.KekSlots, name)
+				continue
+			}
+			fido2KEK, err := device.Derive(credID, salt)
+			if err != nil {
+				delete(enc.KekSlots, name)
+				continue
+			}
+			if len(fido2KEK) < dekSize {
+				delete(enc.KekSlots, name)
+				continue
+			}
+			kek = fido2KEK[:dekSize]
+
+		default:
+			return fmt.Errorf("unknown slot type %q for slot %q", slot.Type, name)
+		}
+
+		wrappedDEK, err := wrapDEK(newDEK, kek)
+		if err != nil {
+			return fmt.Errorf("re-wrapping DEK for slot %q: %w", name, err)
+		}
+		slot.WrappedDEK = base64.StdEncoding.EncodeToString(wrappedDEK)
+	}
+
+	g.dek = newDEK
+
+	if err := g.manifest.Save(g.manifestPath); err != nil {
+		return fmt.Errorf("saving manifest: %w", err)
+	}
+
+	return nil
+}
+
 // NeedsDEK reports whether any of the given entries are encrypted.
 func (g *Garden) NeedsDEK(entries []manifest.Entry) bool {
 	for _, e := range entries {

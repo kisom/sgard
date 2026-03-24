@@ -246,9 +246,9 @@ Depends on Steps 17, 18.
 
 ### Step 24: DEK Rotation
 
-- [ ] `garden/encrypt.go`: `RotateDEK(promptPassphrase func() (string, error)) error` — generate new DEK, re-encrypt all encrypted blobs, re-wrap with all existing KEK slots
-- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt rotate-dek`
-- [ ] Tests: rotate DEK, verify all encrypted entries still decrypt correctly
+- [x] `garden/encrypt.go`: `RotateDEK(promptPassphrase, fido2Device)` — generate new DEK, re-encrypt all encrypted blobs, re-wrap with all existing KEK slots
+- [x] `cmd/sgard/encrypt.go`: `sgard encrypt rotate-dek`
+- [x] Tests: rotate DEK, verify decryption, verify plaintext untouched, FIDO2 re-wrap, requires-unlock (4 tests)
 
 ### Step 25: Real FIDO2 Hardware Binding
 

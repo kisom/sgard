@@ -577,12 +577,24 @@ Both flags must be specified together on the server side; on the client
 side `--tls` alone uses the system trust store, and `--tls-ca` adds a
 custom root.
 
-### Planned: DEK Rotation (Phase 4)
+### DEK Rotation
 
 `sgard encrypt rotate-dek` generates a new DEK, re-encrypts all
-encrypted blobs, and re-wraps the new DEK with all existing KEK slots.
-Required when the DEK is suspected compromised (re-wrapping alone is
-insufficient since the old DEK could decrypt the existing blobs).
+encrypted blobs with the new key, and re-wraps the new DEK with all
+existing KEK slots. Required when the DEK is suspected compromised
+(re-wrapping alone is insufficient since the old DEK could decrypt
+the existing blobs).
+
+The rotation process:
+1. Generate a new random 256-bit DEK
+2. For each encrypted entry: decrypt with old DEK, re-encrypt with new DEK,
+   write new blob to store, update manifest hash (plaintext hash unchanged)
+3. Re-derive each KEK (passphrase via Argon2id, FIDO2 via device) and
+   re-wrap the new DEK. FIDO2 slots without a matching connected device
+   are dropped during rotation.
+4. Save updated manifest
+
+Plaintext entries are untouched.
 
 ### Planned: Multi-Repo + Per-Machine Inclusion (Phase 5)
 

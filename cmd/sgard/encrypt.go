@@ -152,6 +152,37 @@ var changePassphraseCmd = &cobra.Command{
 	},
 }
 
+var rotateDEKCmd = &cobra.Command{
+	Use:   "rotate-dek",
+	Short: "Generate a new DEK and re-encrypt all encrypted blobs",
+	Long:  "Generates a new data encryption key, re-encrypts all encrypted blobs, and re-wraps the DEK with all KEK slots. Required when the DEK is suspected compromised.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		g, err := garden.Open(repoFlag)
+		if err != nil {
+			return err
+		}
+
+		if !g.HasEncryption() {
+			return fmt.Errorf("encryption not initialized")
+		}
+
+		// Unlock with current passphrase.
+		fmt.Println("Enter passphrase to unlock:")
+		if err := g.UnlockDEK(promptPassphrase); err != nil {
+			return err
+		}
+
+		// Rotate — re-prompts for passphrase to re-wrap slot.
+		fmt.Println("Enter passphrase to re-wrap DEK:")
+		if err := g.RotateDEK(promptPassphrase); err != nil {
+			return err
+		}
+
+		fmt.Println("DEK rotated. All encrypted blobs re-encrypted.")
+		return nil
+	},
+}
+
 func init() {
 	encryptInitCmd.Flags().BoolVar(&fido2InitFlag, "fido2", false, "also set up FIDO2 (placeholder)")
 	addFido2Cmd.Flags().StringVar(&fido2LabelFlag, "label", "", "slot label (default: fido2/<hostname>)")
@@ -161,6 +192,7 @@ func init() {
 	encryptCmd.AddCommand(removeSlotCmd)
 	encryptCmd.AddCommand(listSlotsCmd)
 	encryptCmd.AddCommand(changePassphraseCmd)
+	encryptCmd.AddCommand(rotateDEKCmd)
 
 	rootCmd.AddCommand(encryptCmd)
 }

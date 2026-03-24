@@ -150,6 +150,7 @@ but doesn't touch its contents.
 | `encrypt remove-slot <name>` | Remove a KEK slot |
 | `encrypt list-slots` | List all KEK slots |
 | `encrypt change-passphrase` | Change the passphrase |
+| `encrypt rotate-dek` | Generate new DEK and re-encrypt all encrypted blobs |
 | `add --encrypt <path>...` | Track files with encryption |
 
 ### Remote sync
