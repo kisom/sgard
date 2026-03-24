@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 4 in progress. Steps 21–25 complete, ready for Step 26.
+**Phase:** Phase 4 in progress. Steps 21–26 complete, ready for Step 27.
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 26: Test Cleanup.
+Step 27: Phase 4 Polish + Release.
 
 ## Known Issues / Decisions Deferred
 
@@ -89,3 +89,4 @@ Step 26: Test Cleanup.
 | 2026-03-24 | 23 | TLS transport: sgardd --tls-cert/--tls-key, sgard --tls/--tls-ca, 2 integration tests. |
 | 2026-03-24 | 24 | DEK rotation: RotateDEK re-encrypts all blobs, re-wraps all slots, CLI command, 4 tests. |
 | 2026-03-24 | 25 | Real FIDO2: go-libfido2 bindings, build tag gating, CLI wiring, nix sgard-fido2 package. |
+| 2026-03-24 | 26 | Test cleanup: tightened lint, 3 combo tests (encrypted+locked, dir-only+locked, toggle), stale doc fixes. |

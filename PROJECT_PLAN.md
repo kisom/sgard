@@ -262,10 +262,11 @@ Depends on Steps 17, 18.
 
 ### Step 26: Test Cleanup
 
-- [ ] Standardize all test calls to use `AddOptions{}` struct (remove any legacy variadic patterns)
-- [ ] Ensure all tests use `t.TempDir()` consistently
-- [ ] Review lint config, tighten if possible
-- [ ] Verify test coverage for lock/unlock, encrypted locked files, dir-only locked entries
+- [x] Standardize all test calls — already use `AddOptions{}` struct consistently (no legacy variadic patterns found)
+- [x] Ensure all tests use `t.TempDir()` consistently (audited, no `os.MkdirTemp`/`ioutil.Temp` usage)
+- [x] Review lint config — added copyloopvar, durationcheck, makezero, nilerr, bodyclose linters
+- [x] Verify test coverage — added 3 tests: encrypted+locked, dir-only+locked, lock/unlock toggle on encrypted
+- [x] Fix stale API signatures in ARCHITECTURE.md (Add, Lock, Unlock, RotateDEK, HasEncryption, NeedsDEK)
 
 ### Step 27: Phase 4 Polish + Release
 

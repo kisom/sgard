@@ -687,7 +687,7 @@ type Garden struct {
 }
 
 // Local operations
-func (g *Garden) Add(paths []string, encrypt ...bool) error
+func (g *Garden) Add(paths []string, opts ...AddOptions) error
 func (g *Garden) Remove(paths []string) error
 func (g *Garden) Checkpoint(message string) error
 func (g *Garden) Restore(paths []string, force bool, confirm func(string) bool) error
@@ -698,10 +698,15 @@ func (g *Garden) Diff(path string) (string, error)
 func (g *Garden) Prune() (int, error)
 func (g *Garden) MirrorUp(paths []string) error
 func (g *Garden) MirrorDown(paths []string, force bool, confirm func(string) bool) error
+func (g *Garden) Lock(paths []string) error
+func (g *Garden) Unlock(paths []string) error
 
 // Encryption
 func (g *Garden) EncryptInit(passphrase string) error
 func (g *Garden) UnlockDEK(prompt func() (string, error), fido2 ...FIDO2Device) error
+func (g *Garden) HasEncryption() bool
+func (g *Garden) NeedsDEK(entries []manifest.Entry) bool
+func (g *Garden) RotateDEK(prompt func() (string, error), fido2 ...FIDO2Device) error
 func (g *Garden) AddFIDO2Slot(device FIDO2Device, label string) error
 func (g *Garden) RemoveSlot(name string) error
 func (g *Garden) ListSlots() map[string]string

@@ -8,6 +8,11 @@ linters:
     - unused
     - errorlint
     - staticcheck
+    - copyloopvar
+    - durationcheck
+    - makezero
+    - nilerr
+    - bodyclose
 
 linters-settings:
   errcheck:
