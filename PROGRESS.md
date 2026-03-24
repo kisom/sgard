@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Steps 1–6 complete. Ready for Step 7 (Remaining Commands).
+**Phase:** Steps 1–7 complete. Ready for Step 8 (Polish).
 
 **Last updated:** 2026-03-23
 
@@ -30,6 +30,9 @@ ARCHITECTURE.md for design details.
 - **Step 6: Restore** — `Restore()` with selective paths, force mode, confirm
   callback, timestamp-based auto-restore, parent dir creation, symlink support,
   file permission restoration. CLI `restore` with `--force` flag. 6 tests.
+- **Step 7: Remaining Commands** — Remove (2 tests), Verify (3 tests), List
+  (2 tests), Diff (3 tests). Each in its own file to enable parallel
+  development. All CLI commands wired up.
 
 ## In Progress
 
@@ -37,7 +40,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 7: Remaining Commands (remove, verify, list, diff).
+Step 8: Polish (golangci-lint, clock abstraction, e2e test, doc updates).
 
 ## Known Issues / Decisions Deferred
 
@@ -60,3 +63,4 @@ Step 7: Remaining Commands (remove, verify, list, diff).
 | 2026-03-23 | 4 | Garden core complete. Init, Open, Add with file/dir/symlink support, CLI commands. 8 tests. |
 | 2026-03-23 | 5 | Checkpoint and Status complete. Re-hash, store changed blobs, status reporting. 4 tests. |
 | 2026-03-23 | 6 | Restore complete. Selective paths, force/confirm, timestamp logic, symlinks, permissions. 6 tests. |
+| 2026-03-23 | 7 | Remaining commands complete. Remove, Verify, List, Diff — 10 tests across 4 parallel units. |

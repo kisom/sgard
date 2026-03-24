@@ -77,12 +77,12 @@ Depends on Step 5.
 
 *These can be done in parallel with each other.*
 
-- [ ] `garden/garden.go`: `Remove(paths []string) error` — remove manifest entries
-- [ ] `garden/garden.go`: `Verify() ([]VerifyResult, error)` — check blobs against manifest hashes
-- [ ] `garden/garden.go`: `List() []Entry` — return all manifest entries
-- [ ] `garden/diff.go`: `Diff(path string) (string, error)` — diff stored blob vs current file
-- [ ] Wire up CLI: `cmd/sgard/remove.go`, `cmd/sgard/verify.go`, `cmd/sgard/list.go`, `cmd/sgard/diff.go`
-- [ ] Tests for each
+- [x] `garden/remove.go`: `Remove(paths []string) error` — remove manifest entries
+- [x] `garden/verify.go`: `Verify() ([]VerifyResult, error)` — check blobs against manifest hashes
+- [x] `garden/list.go`: `List() []Entry` — return all manifest entries
+- [x] `garden/diff.go`: `Diff(path string) (string, error)` — diff stored blob vs current file
+- [x] Wire up CLI: `cmd/sgard/remove.go`, `cmd/sgard/verify.go`, `cmd/sgard/list.go`, `cmd/sgard/diff.go`
+- [x] Tests for each
 
 ## Step 8: Polish
 
