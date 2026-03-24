@@ -41,14 +41,14 @@ Remove old C++ source files and set up the Go project.
 
 Depends on Steps 2 and 3.
 
-- [ ] `garden/hasher.go`: `HashFile(path) (string, error)` — SHA-256 of a file
-- [ ] `garden/garden.go`: `Garden` struct tying manifest + store + root path
-- [ ] `garden/garden.go`: `Open(root) (*Garden, error)` — load existing repo
-- [ ] `garden/garden.go`: `Init(root) (*Garden, error)` — create new repo (dirs + empty manifest)
-- [ ] `garden/garden.go`: `Add(paths []string) error` — hash files, store blobs, add manifest entries
-- [ ] `garden/garden_test.go`: init creates correct structure, add stores blob and updates manifest
-- [ ] Wire up CLI: `cmd/sgard/init.go`, `cmd/sgard/add.go`
-- [ ] Verify: `go build ./cmd/sgard && ./sgard init && ./sgard add ~/.bashrc`
+- [x] `garden/hasher.go`: `HashFile(path) (string, error)` — SHA-256 of a file
+- [x] `garden/garden.go`: `Garden` struct tying manifest + store + root path
+- [x] `garden/garden.go`: `Open(root) (*Garden, error)` — load existing repo
+- [x] `garden/garden.go`: `Init(root) (*Garden, error)` — create new repo (dirs + empty manifest)
+- [x] `garden/garden.go`: `Add(paths []string) error` — hash files, store blobs, add manifest entries
+- [x] `garden/garden_test.go`: init creates correct structure, add stores blob and updates manifest
+- [x] Wire up CLI: `cmd/sgard/init.go`, `cmd/sgard/add.go`
+- [x] Verify: `go build ./cmd/sgard && ./sgard init && ./sgard add ~/.bashrc`
 
 ## Step 5: Checkpoint and Status
 

@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Steps 2 & 3 complete. Ready for Step 4 (Garden Core).
+**Phase:** Steps 1–4 complete. Ready for Step 5 (Checkpoint and Status).
 
 **Last updated:** 2026-03-23
 
@@ -21,6 +21,9 @@ ARCHITECTURE.md for design details.
 - **Step 3: Store Package** — content-addressable blob store with SHA-256 keying.
   `New()`, `Write()`, `Read()`, `Exists()`, `Delete()` with atomic writes,
   hash validation, and two-level directory layout. 11 tests.
+- **Step 4: Garden Core — Init and Add** — `Garden` struct tying manifest +
+  store, `Init()`, `Open()`, `Add()` handling files/dirs/symlinks, `HashFile()`,
+  tilde path conversion, CLI `init` and `add` commands. 8 tests.
 
 ## In Progress
 
@@ -28,7 +31,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 4: Garden Core — Init and Add. Ties manifest + store together.
+Step 5: Checkpoint and Status.
 
 ## Known Issues / Decisions Deferred
 
@@ -45,3 +48,4 @@ Step 4: Garden Core — Init and Add. Ties manifest + store together.
 | 2026-03-23 | 1 | Scaffolding complete. Old C++ removed, Go module initialized, cobra root command. |
 | 2026-03-23 | 2 | Manifest package complete. Structs, Load/Save with atomic write, full test suite. |
 | 2026-03-23 | 3 | Store package complete. Content-addressable blob store, 11 tests. |
+| 2026-03-23 | 4 | Garden core complete. Init, Open, Add with file/dir/symlink support, CLI commands. 8 tests. |
