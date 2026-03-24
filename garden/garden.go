@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -267,6 +268,137 @@ func (g *Garden) Status() ([]FileStatus, error) {
 	}
 
 	return results, nil
+}
+
+// Restore writes tracked files back to their original locations. If paths is
+// empty, all entries are restored. If force is true, existing files are
+// overwritten without prompting. Otherwise, confirm is called for files where
+// the on-disk version is newer than or equal to the manifest timestamp;
+// if confirm returns false, that file is skipped.
+func (g *Garden) Restore(paths []string, force bool, confirm func(path string) bool) error {
+	entries := g.manifest.Files
+	if len(paths) > 0 {
+		entries = g.filterEntries(paths)
+		if len(entries) == 0 {
+			return fmt.Errorf("no matching tracked entries")
+		}
+	}
+
+	for i := range entries {
+		entry := &entries[i]
+
+		abs, err := ExpandTildePath(entry.Path)
+		if err != nil {
+			return fmt.Errorf("expanding path %s: %w", entry.Path, err)
+		}
+
+		// Check if the file exists and whether we need confirmation.
+		if !force {
+			if info, err := os.Lstat(abs); err == nil {
+				// File exists. If on-disk mtime >= manifest updated, ask.
+				// Truncate to seconds because filesystem mtime granularity
+				// varies across platforms.
+				diskTime := info.ModTime().Truncate(time.Second)
+				entryTime := entry.Updated.Truncate(time.Second)
+				if !diskTime.Before(entryTime) {
+					if confirm == nil || !confirm(entry.Path) {
+						continue
+					}
+				}
+			}
+		}
+
+		// Create parent directories.
+		dir := filepath.Dir(abs)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("creating directory %s: %w", dir, err)
+		}
+
+		switch entry.Type {
+		case "file":
+			if err := g.restoreFile(abs, entry); err != nil {
+				return err
+			}
+
+		case "link":
+			if err := restoreLink(abs, entry); err != nil {
+				return err
+			}
+
+		case "directory":
+			mode, err := parseMode(entry.Mode)
+			if err != nil {
+				return fmt.Errorf("parsing mode for %s: %w", entry.Path, err)
+			}
+			if err := os.MkdirAll(abs, mode); err != nil {
+				return fmt.Errorf("creating directory %s: %w", abs, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (g *Garden) restoreFile(abs string, entry *manifest.Entry) error {
+	data, err := g.store.Read(entry.Hash)
+	if err != nil {
+		return fmt.Errorf("reading blob for %s: %w", entry.Path, err)
+	}
+
+	mode, err := parseMode(entry.Mode)
+	if err != nil {
+		return fmt.Errorf("parsing mode for %s: %w", entry.Path, err)
+	}
+
+	if err := os.WriteFile(abs, data, mode); err != nil {
+		return fmt.Errorf("writing %s: %w", abs, err)
+	}
+
+	return nil
+}
+
+func restoreLink(abs string, entry *manifest.Entry) error {
+	// Remove existing file/link at the target path so we can create the symlink.
+	os.Remove(abs)
+
+	if err := os.Symlink(entry.Target, abs); err != nil {
+		return fmt.Errorf("creating symlink %s -> %s: %w", abs, entry.Target, err)
+	}
+	return nil
+}
+
+// filterEntries returns manifest entries whose tilde paths match any of the
+// given paths (resolved to tilde form).
+func (g *Garden) filterEntries(paths []string) []manifest.Entry {
+	wanted := make(map[string]bool)
+	for _, p := range paths {
+		abs, err := filepath.Abs(p)
+		if err != nil {
+			wanted[p] = true
+			continue
+		}
+		wanted[toTildePath(abs)] = true
+	}
+
+	var result []manifest.Entry
+	for _, e := range g.manifest.Files {
+		if wanted[e.Path] {
+			result = append(result, e)
+		}
+	}
+	return result
+}
+
+// parseMode converts a mode string like "0644" to an os.FileMode.
+func parseMode(s string) (os.FileMode, error) {
+	if s == "" {
+		return 0o644, nil
+	}
+	v, err := strconv.ParseUint(s, 8, 32)
+	if err != nil {
+		return 0, fmt.Errorf("invalid mode %q: %w", s, err)
+	}
+	return os.FileMode(v), nil
 }
 
 // findEntry returns the entry for the given tilde path, or nil if not found.

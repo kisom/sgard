@@ -391,6 +391,226 @@ func TestStatusReportsCorrectly(t *testing.T) {
 	}
 }
 
+func TestRestoreFile(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	// Create a file and add it.
+	testFile := filepath.Join(root, "testfile")
+	content := []byte("restore me\n")
+	if err := os.WriteFile(testFile, content, 0o644); err != nil {
+		t.Fatalf("writing test file: %v", err)
+	}
+
+	if err := g.Add([]string{testFile}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// Delete the file, then restore it.
+	os.Remove(testFile)
+
+	if err := g.Restore(nil, true, nil); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	got, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("reading restored file: %v", err)
+	}
+	if string(got) != string(content) {
+		t.Errorf("restored content = %q, want %q", got, content)
+	}
+}
+
+func TestRestorePermissions(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	testFile := filepath.Join(root, "secret")
+	if err := os.WriteFile(testFile, []byte("secret"), 0o600); err != nil {
+		t.Fatalf("writing test file: %v", err)
+	}
+
+	if err := g.Add([]string{testFile}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	os.Remove(testFile)
+
+	if err := g.Restore(nil, true, nil); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	info, err := os.Stat(testFile)
+	if err != nil {
+		t.Fatalf("stat restored file: %v", err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Errorf("permissions = %04o, want 0600", info.Mode().Perm())
+	}
+}
+
+func TestRestoreSymlink(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	target := filepath.Join(root, "target")
+	if err := os.WriteFile(target, []byte("target"), 0o644); err != nil {
+		t.Fatalf("writing target: %v", err)
+	}
+	link := filepath.Join(root, "link")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatalf("creating symlink: %v", err)
+	}
+
+	if err := g.Add([]string{link}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	os.Remove(link)
+
+	if err := g.Restore(nil, true, nil); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	got, err := os.Readlink(link)
+	if err != nil {
+		t.Fatalf("readlink: %v", err)
+	}
+	if got != target {
+		t.Errorf("symlink target = %q, want %q", got, target)
+	}
+}
+
+func TestRestoreCreatesParentDirs(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	// Create nested file.
+	nested := filepath.Join(root, "a", "b", "c")
+	if err := os.MkdirAll(filepath.Dir(nested), 0o755); err != nil {
+		t.Fatalf("creating dirs: %v", err)
+	}
+	if err := os.WriteFile(nested, []byte("deep"), 0o644); err != nil {
+		t.Fatalf("writing nested file: %v", err)
+	}
+
+	if err := g.Add([]string{nested}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// Remove the entire directory tree.
+	os.RemoveAll(filepath.Join(root, "a"))
+
+	if err := g.Restore(nil, true, nil); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	got, err := os.ReadFile(nested)
+	if err != nil {
+		t.Fatalf("reading restored nested file: %v", err)
+	}
+	if string(got) != "deep" {
+		t.Errorf("content = %q, want %q", got, "deep")
+	}
+}
+
+func TestRestoreSelectivePaths(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	file1 := filepath.Join(root, "file1")
+	file2 := filepath.Join(root, "file2")
+	if err := os.WriteFile(file1, []byte("one"), 0o644); err != nil {
+		t.Fatalf("writing file1: %v", err)
+	}
+	if err := os.WriteFile(file2, []byte("two"), 0o644); err != nil {
+		t.Fatalf("writing file2: %v", err)
+	}
+
+	if err := g.Add([]string{file1, file2}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	os.Remove(file1)
+	os.Remove(file2)
+
+	// Restore only file1.
+	if err := g.Restore([]string{file1}, true, nil); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	if _, err := os.Stat(file1); err != nil {
+		t.Error("file1 should have been restored")
+	}
+	if _, err := os.Stat(file2); err == nil {
+		t.Error("file2 should NOT have been restored")
+	}
+}
+
+func TestRestoreConfirmSkips(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	testFile := filepath.Join(root, "testfile")
+	if err := os.WriteFile(testFile, []byte("original"), 0o644); err != nil {
+		t.Fatalf("writing test file: %v", err)
+	}
+
+	if err := g.Add([]string{testFile}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// Overwrite with newer content (file mtime will be >= manifest updated).
+	if err := os.WriteFile(testFile, []byte("newer on disk"), 0o644); err != nil {
+		t.Fatalf("modifying test file: %v", err)
+	}
+
+	// Confirm returns false — should skip the file.
+	alwaysNo := func(path string) bool { return false }
+	if err := g.Restore(nil, false, alwaysNo); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	got, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("reading file: %v", err)
+	}
+	if string(got) != "newer on disk" {
+		t.Error("file should not have been overwritten when confirm returns false")
+	}
+}
+
 func TestExpandTildePath(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil {

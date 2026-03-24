@@ -63,15 +63,15 @@ Depends on Step 4.
 
 Depends on Step 5.
 
-- [ ] `garden/garden.go`: `Restore(paths []string, force bool) error`
+- [x] `garden/garden.go`: `Restore(paths []string, force bool, confirm func) error`
   - Restore all files if paths is empty, otherwise just the specified paths
   - Timestamp comparison: skip prompt if manifest `updated` is newer than file mtime
   - Prompt user if file on disk is newer or times match (unless `--force`)
   - Create parent directories as needed
   - Recreate symlinks for `link` type entries
   - Set file permissions from manifest `mode`
-- [ ] `garden/garden_test.go`: restore writes correct content, respects permissions, handles symlinks
-- [ ] Wire up CLI: `cmd/sgard/restore.go`
+- [x] `garden/garden_test.go`: restore writes correct content, respects permissions, handles symlinks
+- [x] Wire up CLI: `cmd/sgard/restore.go`
 
 ## Step 7: Remaining Commands
 

@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Steps 1–5 complete. Ready for Step 6 (Restore).
+**Phase:** Steps 1–6 complete. Ready for Step 7 (Remaining Commands).
 
 **Last updated:** 2026-03-23
 
@@ -27,6 +27,9 @@ ARCHITECTURE.md for design details.
 - **Step 5: Checkpoint and Status** — `Checkpoint()` re-hashes all tracked files,
   stores changed blobs, updates timestamps. `Status()` reports ok/modified/missing
   per entry. CLI `checkpoint` (with `-m` flag) and `status` commands. 4 tests.
+- **Step 6: Restore** — `Restore()` with selective paths, force mode, confirm
+  callback, timestamp-based auto-restore, parent dir creation, symlink support,
+  file permission restoration. CLI `restore` with `--force` flag. 6 tests.
 
 ## In Progress
 
@@ -34,7 +37,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 6: Restore.
+Step 7: Remaining Commands (remove, verify, list, diff).
 
 ## Known Issues / Decisions Deferred
 
@@ -53,3 +56,4 @@ Step 6: Restore.
 | 2026-03-23 | 3 | Store package complete. Content-addressable blob store, 11 tests. |
 | 2026-03-23 | 4 | Garden core complete. Init, Open, Add with file/dir/symlink support, CLI commands. 8 tests. |
 | 2026-03-23 | 5 | Checkpoint and Status complete. Re-hash, store changed blobs, status reporting. 4 tests. |
+| 2026-03-23 | 6 | Restore complete. Selective paths, force/confirm, timestamp logic, symlinks, permissions. 6 tests. |
