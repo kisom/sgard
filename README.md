@@ -19,13 +19,14 @@ From source:
 
 ```
 git clone https://github.com/kisom/sgard && cd sgard
-go build -o sgard ./cmd/sgard
+go build ./cmd/sgard ./cmd/sgardd
 ```
 
 Or install into `$GOBIN`:
 
 ```
 go install github.com/kisom/sgard/cmd/sgard@latest
+go install github.com/kisom/sgard/cmd/sgardd@latest
 ```
 
 NixOS (flake):
@@ -84,7 +85,7 @@ sgard restore --repo /mnt/usb/dotfiles
 | `verify` | Check blob store integrity against manifest hashes |
 | `prune` | Remove orphaned blobs not referenced by the manifest |
 | `mirror up <path>` | Sync filesystem → manifest (add new, remove deleted) |
-| `mirror down <path>` | Sync manifest → filesystem (restore + delete untracked) |
+| `mirror down <path> [-f]` | Sync manifest → filesystem (restore + delete untracked) |
 | `version` | Print the version |
 
 ### Remote sync
@@ -93,11 +94,13 @@ sgard restore --repo /mnt/usb/dotfiles
 |---|---|
 | `push` | Push checkpoint to remote gRPC server |
 | `pull` | Pull checkpoint from remote gRPC server |
-| `prune --remote` | Remove orphaned blobs on the remote server |
-| `sgardd` | Run the gRPC sync daemon (separate binary) |
+| `prune` | With `--remote`, prunes orphaned blobs on the server |
 
 Remote commands require `--remote host:port` (or `SGARD_REMOTE` env, or a
 `<repo>/remote` config file) and authenticate via SSH keys.
+
+The server daemon `sgardd` is a separate binary (included in releases and
+Nix builds).
 
 ## Remote sync
 

@@ -93,19 +93,22 @@ Properties:
 
 All commands operate on a repository directory (default: `~/.sgard`, override with `--repo`).
 
-### Phase 1 — Local
+### Local
 
 | Command | Description |
 |---|---|
 | `sgard init [--repo <path>]` | Create a new repository |
-| `sgard add <path>...` | Track files; copies them into the blob store and adds manifest entries |
-| `sgard remove <path>...` | Untrack files; removes manifest entries (blobs cleaned up on next checkpoint) |
-| `sgard checkpoint [-m <message>]` | Re-hash all tracked files, store any changed blobs, update manifest |
+| `sgard add <path>...` | Track files, directories (recursed), or symlinks |
+| `sgard remove <path>...` | Untrack files; run `prune` to clean orphaned blobs |
+| `sgard checkpoint [-m <message>]` | Re-hash all tracked files, store changed blobs, update manifest |
 | `sgard restore [<path>...] [--force]` | Restore files from manifest to their original locations |
 | `sgard status` | Compare current files against manifest: modified, missing, ok |
 | `sgard verify` | Check all blobs against manifest hashes (integrity check) |
 | `sgard list` | List all tracked files |
-| `sgard diff [<path>]` | Show content diff between current file and stored blob |
+| `sgard diff <path>` | Show content diff between current file and stored blob |
+| `sgard prune` | Remove orphaned blobs not referenced by the manifest |
+| `sgard mirror up <path>...` | Sync filesystem → manifest (add new, remove deleted, rehash) |
+| `sgard mirror down <path>... [--force]` | Sync manifest → filesystem (restore + delete untracked) |
 
 **Workflow example:**
 
@@ -123,15 +126,13 @@ sgard checkpoint -m "initial" --repo /mnt/usb/dotfiles
 sgard restore --repo /mnt/usb/dotfiles
 ```
 
-### Phase 2 — Remote
+### Remote
 
 | Command | Description |
 |---|---|
 | `sgard push` | Push checkpoint to remote gRPC server |
 | `sgard pull` | Pull checkpoint from remote gRPC server |
-| `sgard prune` | Remove orphaned blobs (local or `--remote`) |
-| `sgard mirror up <path>` | Sync filesystem → manifest (add new, remove deleted) |
-| `sgard mirror down <path>` | Sync manifest → filesystem (restore + delete untracked) |
+| `sgard prune` | With `--remote`, prunes orphaned blobs on the server |
 | `sgardd` | Run the gRPC sync daemon |
 
 ## gRPC Protocol
