@@ -56,6 +56,7 @@ func EntryToProto(e manifest.Entry) *sgardpb.ManifestEntry {
 		Updated:       timestamppb.New(e.Updated),
 		PlaintextHash: e.PlaintextHash,
 		Encrypted:     e.Encrypted,
+		Locked:        e.Locked,
 	}
 }
 
@@ -70,6 +71,7 @@ func ProtoToEntry(p *sgardpb.ManifestEntry) manifest.Entry {
 		Updated:       p.GetUpdated().AsTime(),
 		PlaintextHash: p.GetPlaintextHash(),
 		Encrypted:     p.GetEncrypted(),
+		Locked:        p.GetLocked(),
 	}
 }
 

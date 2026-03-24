@@ -15,6 +15,7 @@ type Entry struct {
 	Hash          string    `yaml:"hash,omitempty"`
 	PlaintextHash string    `yaml:"plaintext_hash,omitempty"`
 	Encrypted     bool      `yaml:"encrypted,omitempty"`
+	Locked        bool      `yaml:"locked,omitempty"`
 	Type          string    `yaml:"type"`
 	Mode          string    `yaml:"mode,omitempty"`
 	Target        string    `yaml:"target,omitempty"`

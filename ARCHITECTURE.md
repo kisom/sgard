@@ -687,6 +687,27 @@ on disk is newer or the times match, sgard prompts for confirmation.
 **Timestamp comparison truncates to seconds** for cross-platform filesystem
 compatibility.
 
+**Locked files (`--lock`).** A locked entry is repo-authoritative — the
+on-disk copy is treated as potentially corrupted by the system, not as
+a user edit. Semantics:
+- **`add --lock`** — tracks the file normally, marks it as locked
+- **`checkpoint`** — skips locked files entirely (preserves the repo version)
+- **`status`** — reports locked files with changed hashes as `drifted`
+  (distinct from `modified`, which implies a user edit)
+- **`restore`** — always restores locked files if the hash differs,
+  regardless of timestamp, without prompting. Skips if hash matches.
+- **`add`** (without `--lock`) — can be used to explicitly update a locked
+  file in the repo when the on-disk version is intentionally new
+
+Use case: system-managed files like `~/.config/user-dirs.dirs` that get
+overwritten by the OS but should be kept at a known-good state.
+
+**Directory-only entries (`--dir`).** `add --dir <path>` tracks the
+directory itself as a structural entry without recursing into its
+contents. On restore, sgard ensures the directory exists with the
+correct permissions. Use case: directories that must exist for other
+software to function, but whose contents are managed elsewhere.
+
 **Remote config resolution:** `--remote` flag > `SGARD_REMOTE` env >
 `<repo>/remote` file.
 

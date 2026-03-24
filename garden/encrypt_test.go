@@ -128,7 +128,7 @@ func TestAddEncrypted(t *testing.T) {
 		t.Fatalf("writing secret file: %v", err)
 	}
 
-	if err := g.Add([]string{secretFile}, true); err != nil {
+	if err := g.Add([]string{secretFile}, AddOptions{Encrypt: true}); err != nil {
 		t.Fatalf("Add encrypted: %v", err)
 	}
 
@@ -205,7 +205,7 @@ func TestEncryptedRestoreRoundTrip(t *testing.T) {
 		t.Fatalf("writing: %v", err)
 	}
 
-	if err := g.Add([]string{secretFile}, true); err != nil {
+	if err := g.Add([]string{secretFile}, AddOptions{Encrypt: true}); err != nil {
 		t.Fatalf("Add: %v", err)
 	}
 
@@ -243,7 +243,7 @@ func TestEncryptedCheckpoint(t *testing.T) {
 		t.Fatalf("writing: %v", err)
 	}
 
-	if err := g.Add([]string{secretFile}, true); err != nil {
+	if err := g.Add([]string{secretFile}, AddOptions{Encrypt: true}); err != nil {
 		t.Fatalf("Add: %v", err)
 	}
 
@@ -285,7 +285,7 @@ func TestEncryptedStatus(t *testing.T) {
 		t.Fatalf("writing: %v", err)
 	}
 
-	if err := g.Add([]string{secretFile}, true); err != nil {
+	if err := g.Add([]string{secretFile}, AddOptions{Encrypt: true}); err != nil {
 		t.Fatalf("Add: %v", err)
 	}
 
@@ -330,7 +330,7 @@ func TestEncryptedDiff(t *testing.T) {
 		t.Fatalf("writing: %v", err)
 	}
 
-	if err := g.Add([]string{secretFile}, true); err != nil {
+	if err := g.Add([]string{secretFile}, AddOptions{Encrypt: true}); err != nil {
 		t.Fatalf("Add: %v", err)
 	}
 
@@ -372,7 +372,7 @@ func TestAddEncryptedRequiresDEK(t *testing.T) {
 		t.Fatalf("writing: %v", err)
 	}
 
-	err = g.Add([]string{testFile}, true)
+	err = g.Add([]string{testFile}, AddOptions{Encrypt: true})
 	if err == nil {
 		t.Fatal("Add --encrypt without DEK should fail")
 	}

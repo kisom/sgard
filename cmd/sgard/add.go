@@ -10,7 +10,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var encryptFlag bool
+var (
+	encryptFlag bool
+	lockFlag    bool
+	dirOnlyFlag bool
+)
 
 var addCmd = &cobra.Command{
 	Use:   "add <path>...",
@@ -31,7 +35,13 @@ var addCmd = &cobra.Command{
 			}
 		}
 
-		if err := g.Add(args, encryptFlag); err != nil {
+		opts := garden.AddOptions{
+			Encrypt: encryptFlag,
+			Lock:    lockFlag,
+			DirOnly: dirOnlyFlag,
+		}
+
+		if err := g.Add(args, opts); err != nil {
 			return err
 		}
 
@@ -51,5 +61,7 @@ func promptPassphrase() (string, error) {
 
 func init() {
 	addCmd.Flags().BoolVar(&encryptFlag, "encrypt", false, "encrypt file contents before storing")
+	addCmd.Flags().BoolVar(&lockFlag, "lock", false, "mark as locked (repo-authoritative, restore always overwrites)")
+	addCmd.Flags().BoolVar(&dirOnlyFlag, "dir", false, "track directory itself without recursing into contents")
 	rootCmd.AddCommand(addCmd)
 }

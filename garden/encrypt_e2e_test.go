@@ -45,7 +45,7 @@ func TestEncryptionE2E(t *testing.T) {
 	}
 
 	// Encrypted files.
-	if err := g.Add([]string{sshConfig, awsCreds}, true); err != nil {
+	if err := g.Add([]string{sshConfig, awsCreds}, AddOptions{Encrypt: true}); err != nil {
 		t.Fatalf("Add encrypted: %v", err)
 	}
 	// Plaintext file.

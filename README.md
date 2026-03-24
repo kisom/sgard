@@ -76,6 +76,8 @@ sgard restore --repo /mnt/usb/dotfiles
 |---|---|
 | `init` | Create a new repository |
 | `add <path>...` | Track files, directories (recursed), or symlinks |
+| `add --lock <path>...` | Track as locked (repo-authoritative, auto-restores on drift) |
+| `add --dir <path>` | Track directory itself without recursing into contents |
 | `remove <path>...` | Stop tracking files |
 | `checkpoint [-m msg]` | Re-hash tracked files and update the manifest |
 | `restore [path...] [-f]` | Restore files to their original locations |

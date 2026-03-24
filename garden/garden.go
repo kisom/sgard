@@ -138,11 +138,10 @@ func (g *Garden) DeleteBlob(hash string) error {
 	return g.store.Delete(hash)
 }
 
-// addEntry adds a single file or symlink to the manifest. The abs path must
-// already be resolved and info must come from os.Lstat. If skipDup is true,
-// already-tracked paths are silently skipped instead of returning an error.
-// If encrypt is true, the file blob is encrypted before storing.
-func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup, encrypt bool) error {
+// addEntry adds a single file or symlink to the manifest. If skipDup is true,
+// already-tracked paths are silently skipped. If encrypt is true, the file
+// blob is encrypted before storing. If lock is true, the entry is marked locked.
+func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup, encrypt, lock bool) error {
 	tilded := toTildePath(abs)
 
 	if g.findEntry(tilded) != nil {
@@ -155,6 +154,7 @@ func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup, 
 	entry := manifest.Entry{
 		Path:    tilded,
 		Mode:    fmt.Sprintf("%04o", info.Mode().Perm()),
+		Locked:  lock,
 		Updated: now,
 	}
 
@@ -198,15 +198,23 @@ func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup, 
 	return nil
 }
 
+// AddOptions controls the behavior of Add.
+type AddOptions struct {
+	Encrypt bool // encrypt file blobs before storing
+	Lock    bool // mark entries as locked (repo-authoritative)
+	DirOnly bool // for directories: track the directory itself, don't recurse
+}
+
 // Add tracks new files, directories, or symlinks. Each path is resolved
 // to an absolute path, inspected for its type, and added to the manifest.
 // Regular files are hashed and stored in the blob store. Directories are
-// recursively walked and all leaf files and symlinks are added individually.
-// If encrypt is true, file blobs are encrypted before storing (requires
-// the DEK to be unlocked).
-func (g *Garden) Add(paths []string, encrypt ...bool) error {
-	enc := len(encrypt) > 0 && encrypt[0]
-	if enc && g.dek == nil {
+// recursively walked unless opts.DirOnly is set.
+func (g *Garden) Add(paths []string, opts ...AddOptions) error {
+	var o AddOptions
+	if len(opts) > 0 {
+		o = opts[0]
+	}
+	if o.Encrypt && g.dek == nil {
 		return fmt.Errorf("DEK not unlocked; run sgard encrypt init or unlock first")
 	}
 
@@ -224,24 +232,40 @@ func (g *Garden) Add(paths []string, encrypt ...bool) error {
 		}
 
 		if info.IsDir() {
-			err := filepath.WalkDir(abs, func(path string, d os.DirEntry, err error) error {
+			if o.DirOnly {
+				// Track the directory itself as a structural entry.
+				tilded := toTildePath(abs)
+				if g.findEntry(tilded) != nil {
+					return fmt.Errorf("already tracking %s", tilded)
+				}
+				entry := manifest.Entry{
+					Path:    tilded,
+					Type:    "directory",
+					Mode:    fmt.Sprintf("%04o", info.Mode().Perm()),
+					Locked:  o.Lock,
+					Updated: now,
+				}
+				g.manifest.Files = append(g.manifest.Files, entry)
+			} else {
+				err := filepath.WalkDir(abs, func(path string, d os.DirEntry, err error) error {
+					if err != nil {
+						return err
+					}
+					if d.IsDir() {
+						return nil
+					}
+					fi, err := os.Lstat(path)
+					if err != nil {
+						return fmt.Errorf("stat %s: %w", path, err)
+					}
+					return g.addEntry(path, fi, now, true, o.Encrypt, o.Lock)
+				})
 				if err != nil {
-					return err
+					return fmt.Errorf("walking directory %s: %w", abs, err)
 				}
-				if d.IsDir() {
-					return nil
-				}
-				fi, err := os.Lstat(path)
-				if err != nil {
-					return fmt.Errorf("stat %s: %w", path, err)
-				}
-				return g.addEntry(path, fi, now, true, enc)
-			})
-			if err != nil {
-				return fmt.Errorf("walking directory %s: %w", abs, err)
 			}
 		} else {
-			if err := g.addEntry(abs, info, now, false, enc); err != nil {
+			if err := g.addEntry(abs, info, now, false, o.Encrypt, o.Lock); err != nil {
 				return err
 			}
 		}
@@ -283,6 +307,11 @@ func (g *Garden) Checkpoint(message string) error {
 		}
 
 		entry.Mode = fmt.Sprintf("%04o", info.Mode().Perm())
+
+		// Locked entries are repo-authoritative — checkpoint skips them.
+		if entry.Locked {
+			continue
+		}
 
 		switch entry.Type {
 		case "file":
@@ -379,7 +408,11 @@ func (g *Garden) Status() ([]FileStatus, error) {
 				compareHash = entry.PlaintextHash
 			}
 			if hash != compareHash {
-				results = append(results, FileStatus{Path: entry.Path, State: "modified"})
+				if entry.Locked {
+					results = append(results, FileStatus{Path: entry.Path, State: "drifted"})
+				} else {
+					results = append(results, FileStatus{Path: entry.Path, State: "modified"})
+				}
 			} else {
 				results = append(results, FileStatus{Path: entry.Path, State: "ok"})
 			}
@@ -425,12 +458,21 @@ func (g *Garden) Restore(paths []string, force bool, confirm func(path string) b
 			return fmt.Errorf("expanding path %s: %w", entry.Path, err)
 		}
 
-		// Check if the file exists and whether we need confirmation.
-		if !force {
+		// Locked entries always restore if content differs — no prompt.
+		if entry.Locked && entry.Type == "file" {
+			if currentHash, err := HashFile(abs); err == nil {
+				compareHash := entry.Hash
+				if entry.Encrypted && entry.PlaintextHash != "" {
+					compareHash = entry.PlaintextHash
+				}
+				if currentHash == compareHash {
+					continue // already matches, skip
+				}
+			}
+			// File is missing or hash differs — proceed to restore.
+		} else if !force {
+			// Normal entries: check timestamp for confirmation.
 			if info, err := os.Lstat(abs); err == nil {
-				// File exists. If on-disk mtime >= manifest updated, ask.
-				// Truncate to seconds because filesystem mtime granularity
-				// varies across platforms.
 				diskTime := info.ModTime().Truncate(time.Second)
 				entryTime := entry.Updated.Truncate(time.Second)
 				if !diskTime.Before(entryTime) {

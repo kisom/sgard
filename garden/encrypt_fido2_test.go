@@ -234,7 +234,7 @@ func TestEncryptedRoundTripWithFIDO2(t *testing.T) {
 		t.Fatalf("writing: %v", err)
 	}
 
-	if err := g.Add([]string{secretFile}, true); err != nil {
+	if err := g.Add([]string{secretFile}, AddOptions{Encrypt: true}); err != nil {
 		t.Fatalf("Add: %v", err)
 	}
 

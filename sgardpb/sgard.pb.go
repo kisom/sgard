@@ -85,6 +85,7 @@ type ManifestEntry struct {
 	Updated       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated,proto3" json:"updated,omitempty"`
 	PlaintextHash string                 `protobuf:"bytes,7,opt,name=plaintext_hash,json=plaintextHash,proto3" json:"plaintext_hash,omitempty"` // SHA-256 of plaintext (encrypted entries only)
 	Encrypted     bool                   `protobuf:"varint,8,opt,name=encrypted,proto3" json:"encrypted,omitempty"`
+	Locked        bool                   `protobuf:"varint,9,opt,name=locked,proto3" json:"locked,omitempty"` // repo-authoritative; restore always overwrites
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -171,6 +172,13 @@ func (x *ManifestEntry) GetPlaintextHash() string {
 func (x *ManifestEntry) GetEncrypted() bool {
 	if x != nil {
 		return x.Encrypted
+	}
+	return false
+}
+
+func (x *ManifestEntry) GetLocked() bool {
+	if x != nil {
+		return x.Locked
 	}
 	return false
 }
@@ -1071,7 +1079,7 @@ var File_sgard_v1_sgard_proto protoreflect.FileDescriptor
 
 const file_sgard_v1_sgard_proto_rawDesc = "" +
 	"\n" +
-	"\x14sgard/v1/sgard.proto\x12\bsgard.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf2\x01\n" +
+	"\x14sgard/v1/sgard.proto\x12\bsgard.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8a\x02\n" +
 	"\rManifestEntry\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\x12\x12\n" +
@@ -1080,7 +1088,8 @@ const file_sgard_v1_sgard_proto_rawDesc = "" +
 	"\x06target\x18\x05 \x01(\tR\x06target\x124\n" +
 	"\aupdated\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\aupdated\x12%\n" +
 	"\x0eplaintext_hash\x18\a \x01(\tR\rplaintextHash\x12\x1c\n" +
-	"\tencrypted\x18\b \x01(\bR\tencrypted\"\xe4\x01\n" +
+	"\tencrypted\x18\b \x01(\bR\tencrypted\x12\x16\n" +
+	"\x06locked\x18\t \x01(\bR\x06locked\"\xe4\x01\n" +
 	"\aKekSlot\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1f\n" +
 	"\vargon2_time\x18\x02 \x01(\x05R\n" +
