@@ -237,12 +237,12 @@ Depends on Steps 17, 18.
 
 ### Step 23: TLS Transport for sgardd
 
-- [ ] `cmd/sgardd/main.go`: add `--tls-cert`, `--tls-key` flags
-- [ ] Server uses `credentials.NewTLS()` when cert/key provided, insecure otherwise
-- [ ] Client: add `--tls` flag and `--tls-ca` for custom CA
-- [ ] Update `cmd/sgard/main.go` and `dialRemote()` for TLS
-- [ ] Tests: TLS connection with self-signed cert
-- [ ] Update ARCHITECTURE.md and README.md
+- [x] `cmd/sgardd/main.go`: add `--tls-cert`, `--tls-key` flags
+- [x] Server uses `credentials.NewTLS()` when cert/key provided, insecure otherwise
+- [x] Client: add `--tls` flag and `--tls-ca` for custom CA
+- [x] Update `cmd/sgard/main.go` and `dialRemote()` for TLS
+- [x] Tests: TLS connection with self-signed cert (push/pull cycle, reject untrusted client)
+- [x] Update ARCHITECTURE.md and README.md
 
 ### Step 24: DEK Rotation
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"os"
@@ -10,12 +11,15 @@ import (
 	"github.com/kisom/sgard/sgardpb"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 var (
-	listenAddr     string
-	repoPath       string
-	authKeysPath   string
+	listenAddr   string
+	repoPath     string
+	authKeysPath string
+	tlsCertPath  string
+	tlsKeyPath   string
 )
 
 var rootCmd = &cobra.Command{
@@ -28,6 +32,21 @@ var rootCmd = &cobra.Command{
 		}
 
 		var opts []grpc.ServerOption
+
+		if tlsCertPath != "" && tlsKeyPath != "" {
+			cert, err := tls.LoadX509KeyPair(tlsCertPath, tlsKeyPath)
+			if err != nil {
+				return fmt.Errorf("loading TLS cert/key: %w", err)
+			}
+			opts = append(opts, grpc.Creds(credentials.NewTLS(&tls.Config{
+				Certificates: []tls.Certificate{cert},
+				MinVersion:   tls.VersionTLS12,
+			})))
+			fmt.Println("TLS enabled")
+		} else if tlsCertPath != "" || tlsKeyPath != "" {
+			return fmt.Errorf("both --tls-cert and --tls-key must be specified together")
+		}
+
 		var srvInstance *server.Server
 
 		if authKeysPath != "" {
@@ -63,6 +82,8 @@ func main() {
 	rootCmd.Flags().StringVar(&listenAddr, "listen", ":9473", "gRPC listen address")
 	rootCmd.Flags().StringVar(&repoPath, "repo", "/srv/sgard", "path to sgard repository")
 	rootCmd.Flags().StringVar(&authKeysPath, "authorized-keys", "", "path to authorized SSH public keys file")
+	rootCmd.Flags().StringVar(&tlsCertPath, "tls-cert", "", "path to TLS certificate file")
+	rootCmd.Flags().StringVar(&tlsKeyPath, "tls-key", "", "path to TLS private key file")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

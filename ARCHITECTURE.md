@@ -563,12 +563,19 @@ new machine, the user runs `sgard encrypt add-fido2` which:
 On next push, the new slot propagates to the server and other machines.
 Each machine accumulates its own FIDO2 slot over time.
 
-### Planned: TLS Transport (Phase 4)
+### TLS Transport
 
-sgardd will support optional TLS via `--tls-cert` and `--tls-key` flags.
-When provided, the server uses `credentials.NewTLS()`. Without them,
-it runs insecure (current behavior). The client gains `--tls` and
-`--tls-ca` flags for connecting to TLS-enabled servers.
+sgardd supports optional TLS via `--tls-cert` and `--tls-key` flags.
+When provided, the server uses `credentials.NewTLS()` with a minimum
+of TLS 1.2. Without them, it runs insecure (for local/trusted networks).
+
+The client gains `--tls` and `--tls-ca` flags:
+- `--tls` — enables TLS transport (uses system CA pool by default)
+- `--tls-ca <path>` — custom CA certificate for self-signed server certs
+
+Both flags must be specified together on the server side; on the client
+side `--tls` alone uses the system trust store, and `--tls-ca` adds a
+custom root.
 
 ### Planned: DEK Rotation (Phase 4)
 
@@ -595,14 +602,14 @@ the same server? This requires a proper trust/key-authority design.
 ```
 sgard/
   cmd/sgard/              # CLI entry point — one file per command
-    main.go               # cobra root command, --repo/--remote/--ssh-key flags
+    main.go               # cobra root command, --repo/--remote/--ssh-key/--tls/--tls-ca flags
     encrypt.go            # sgard encrypt init/add-fido2/remove-slot/list-slots/change-passphrase
     push.go pull.go prune.go mirror.go
     init.go add.go remove.go checkpoint.go
     restore.go status.go verify.go list.go diff.go version.go
 
   cmd/sgardd/             # gRPC server daemon
-    main.go               # --listen, --repo, --authorized-keys flags
+    main.go               # --listen, --repo, --authorized-keys, --tls-cert, --tls-key flags
 
   garden/                 # Core business logic — one file per operation
     garden.go             # Garden struct, Init, Open, Add, Checkpoint, Status, accessors

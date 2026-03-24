@@ -185,6 +185,24 @@ sgard pull --remote myserver:9473
 Authentication uses your existing SSH keys (ssh-agent, `~/.ssh/id_ed25519`,
 or `--ssh-key`). No passwords or certificates to manage.
 
+### TLS
+
+To encrypt the connection with TLS:
+
+```sh
+# Server: provide cert and key
+sgardd --tls-cert server.crt --tls-key server.key --authorized-keys ~/.ssh/authorized_keys
+
+# Client: enable TLS (uses system CA pool)
+sgard push --remote myserver:9473 --tls
+
+# Client: with a custom/self-signed CA
+sgard push --remote myserver:9473 --tls --tls-ca ca.crt
+```
+
+Without `--tls-cert`/`--tls-key`, sgardd runs without TLS (suitable for
+localhost or trusted networks).
+
 ## Encryption
 
 Sensitive files can be encrypted individually:
