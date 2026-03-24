@@ -41,6 +41,21 @@ in your packages.
 Binaries are also available on the
 [releases page](https://github.com/kisom/sgard/releases).
 
+### Shell completion
+
+```sh
+# Bash (add to ~/.bashrc)
+source <(sgard completion bash)
+
+# Zsh (add to ~/.zshrc)
+source <(sgard completion zsh)
+
+# Fish
+sgard completion fish | source
+# To load on startup:
+sgard completion fish > ~/.config/fish/completions/sgard.fish
+```
+
 ## Quick start
 
 ```sh

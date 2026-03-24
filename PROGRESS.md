@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 4 in progress. Step 21 complete, ready for Step 22.
+**Phase:** Phase 4 in progress. Steps 21–22 complete, ready for Step 23.
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 22: Shell Completion.
+Step 23: TLS Transport for sgardd.
 
 ## Known Issues / Decisions Deferred
 
@@ -85,3 +85,4 @@ Step 22: Shell Completion.
 | 2026-03-24 | — | Locked files + dir-only entries. v2.0.0 released. |
 | 2026-03-24 | — | Phase 4 planned (Steps 21–27): lock/unlock, shell completion, TLS, DEK rotation, real FIDO2, test cleanup. |
 | 2026-03-24 | 21 | Lock/unlock toggle commands. garden/lock.go, cmd/sgard/lock.go, 6 tests. |
+| 2026-03-24 | 22 | Shell completion: cobra built-in, README docs for bash/zsh/fish. |

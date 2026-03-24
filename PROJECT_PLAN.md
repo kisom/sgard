@@ -232,8 +232,8 @@ Depends on Steps 17, 18.
 
 ### Step 22: Shell Completion
 
-- [ ] `cmd/sgard/completion.go`: cobra's built-in completion for bash, zsh, fish
-- [ ] Update README with completion installation instructions
+- [x] Cobra provides built-in `sgard completion` for bash, zsh, fish, powershell — no code needed
+- [x] README updated with shell completion installation instructions
 
 ### Step 23: TLS Transport for sgardd
 
