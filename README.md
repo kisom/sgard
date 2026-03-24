@@ -107,8 +107,8 @@ Nix builds).
 Start the daemon on your server:
 
 ```sh
-sgard init --repo /var/lib/sgard
-sgardd --repo /var/lib/sgard --authorized-keys ~/.ssh/authorized_keys
+sgard init --repo /srv/sgard
+sgardd --authorized-keys ~/.ssh/authorized_keys
 ```
 
 Push and pull from client machines:

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 
 	"github.com/kisom/sgard/garden"
 	"github.com/kisom/sgard/server"
@@ -60,17 +59,9 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func defaultRepo() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ".sgard"
-	}
-	return filepath.Join(home, ".sgard")
-}
-
 func main() {
 	rootCmd.Flags().StringVar(&listenAddr, "listen", ":9473", "gRPC listen address")
-	rootCmd.Flags().StringVar(&repoPath, "repo", defaultRepo(), "path to sgard repository")
+	rootCmd.Flags().StringVar(&repoPath, "repo", "/srv/sgard", "path to sgard repository")
 	rootCmd.Flags().StringVar(&authKeysPath, "authorized-keys", "", "path to authorized SSH public keys file")
 
 	if err := rootCmd.Execute(); err != nil {
