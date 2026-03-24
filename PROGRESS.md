@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 3 complete (Steps 17–20). Encryption fully implemented.
+**Phase:** Phase 3 complete. v2.0.0 released. Phase 4 planned, ready for Step 21.
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Phase 3 complete. Future: TLS transport, shell completions, manifest signing, real FIDO2 hardware binding.
+Phase 4: Hardening + Completeness. Step 21 (lock/unlock toggle) is next.
 
 ## Known Issues / Decisions Deferred
 
@@ -82,3 +82,5 @@ Phase 3 complete. Future: TLS transport, shell completions, manifest signing, re
 | 2026-03-24 | 18 | FIDO2: FIDO2Device interface, AddFIDO2Slot, unlock resolution (fido2 first → passphrase fallback), mock device, 6 tests. |
 | 2026-03-24 | 19 | Encryption CLI: encrypt init/add-fido2/remove-slot/list-slots/change-passphrase, --encrypt on add, proto + convert updates. |
 | 2026-03-24 | 20 | Polish: encryption e2e test, all docs updated, flake vendorHash updated. |
+| 2026-03-24 | — | Locked files + dir-only entries. v2.0.0 released. |
+| 2026-03-24 | — | Phase 4 planned (Steps 21–27): lock/unlock, shell completion, TLS, DEK rotation, real FIDO2, test cleanup. |

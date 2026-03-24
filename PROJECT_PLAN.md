@@ -222,8 +222,62 @@ Depends on Steps 17, 18.
 
 ## Future Steps (Not Phase 3)
 
-- Shell completion via cobra
-- TLS transport (optional --tls-cert/--tls-key on sgardd)
-- Multiple repo support on server
-- Manifest signing (requires trust model design)
-- DEK rotation (`sgard encrypt rotate-dek` — re-encrypt all blobs)
+## Phase 4: Hardening + Completeness
+
+### Step 21: Lock/Unlock Toggle Commands
+
+- [ ] `garden/garden.go`: `Lock(paths []string) error` — set `locked: true` on existing entries
+- [ ] `garden/garden.go`: `Unlock(paths []string) error` — set `locked: false` on existing entries
+- [ ] `cmd/sgard/lock.go`: `sgard lock <path>...`, `sgard unlock <path>...`
+- [ ] Tests: lock existing entry, unlock it, verify behavior changes
+
+### Step 22: Shell Completion
+
+- [ ] `cmd/sgard/completion.go`: cobra's built-in completion for bash, zsh, fish
+- [ ] Update README with completion installation instructions
+
+### Step 23: TLS Transport for sgardd
+
+- [ ] `cmd/sgardd/main.go`: add `--tls-cert`, `--tls-key` flags
+- [ ] Server uses `credentials.NewTLS()` when cert/key provided, insecure otherwise
+- [ ] Client: add `--tls` flag and `--tls-ca` for custom CA
+- [ ] Update `cmd/sgard/main.go` and `dialRemote()` for TLS
+- [ ] Tests: TLS connection with self-signed cert
+- [ ] Update ARCHITECTURE.md and README.md
+
+### Step 24: DEK Rotation
+
+- [ ] `garden/encrypt.go`: `RotateDEK(promptPassphrase func() (string, error)) error` — generate new DEK, re-encrypt all encrypted blobs, re-wrap with all existing KEK slots
+- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt rotate-dek`
+- [ ] Tests: rotate DEK, verify all encrypted entries still decrypt correctly
+
+### Step 25: Real FIDO2 Hardware Binding
+
+- [ ] Evaluate approach: libfido2 CGo bindings vs subprocess (`fido2-token`/`fido2-cred`)
+- [ ] Implement real `FIDO2Device` satisfying the existing interface
+- [ ] `cmd/sgard/encrypt.go`: wire real device into `add-fido2` and unlock resolution
+- [ ] Build tag or runtime detection for FIDO2 availability
+- [ ] Tests: skip on CI without hardware, manual test instructions
+
+### Step 26: Test Cleanup
+
+- [ ] Standardize all test calls to use `AddOptions{}` struct (remove any legacy variadic patterns)
+- [ ] Ensure all tests use `t.TempDir()` consistently
+- [ ] Review lint config, tighten if possible
+- [ ] Verify test coverage for lock/unlock, encrypted locked files, dir-only locked entries
+
+### Step 27: Phase 4 Polish + Release
+
+- [ ] Update all docs (ARCHITECTURE.md, README.md, CLAUDE.md, PROGRESS.md)
+- [ ] Update flake.nix vendorHash if deps changed
+- [ ] Update .goreleaser.yaml if needed
+- [ ] E2e test covering TLS + encryption + locked files
+- [ ] Verify: all tests pass, lint clean, both binaries compile
+
+## Phase 5: Multi-Repo + Per-Machine Inclusion
+
+(To be planned)
+
+## Phase 6: Manifest Signing
+
+(To be planned — requires trust model design)
