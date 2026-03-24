@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 2 in progress. Step 9 complete, ready for Steps 10+11.
+**Phase:** Phase 2 in progress. Steps 9–11 complete, ready for Step 12.
 
 **Last updated:** 2026-03-23
 
@@ -42,7 +42,7 @@ Phase 2: gRPC Remote Sync.
 
 ## Up Next
 
-Steps 10 (Garden accessors) + 11 (proto-manifest conversion) — can be parallel.
+Step 12: Server Implementation (No Auth).
 
 ## Known Issues / Decisions Deferred
 
@@ -69,3 +69,5 @@ Steps 10 (Garden accessors) + 11 (proto-manifest conversion) — can be parallel
 | 2026-03-23 | — | README, goreleaser config, version command, Nix flake, homebrew formula, release pipeline validated (v0.1.0–v0.1.2). |
 | 2026-03-23 | — | v1.0.0 released. Docs updated for release. |
 | 2026-03-23 | 9 | Proto definitions: 5 RPCs (Push/Pull manifest+blobs, Prune), generated sgardpb, Makefile, deps added. |
+| 2026-03-23 | 10 | Garden accessor methods: GetManifest, BlobExists, ReadBlob, WriteBlob, ReplaceManifest. 5 tests. |
+| 2026-03-23 | 11 | Proto-manifest conversion: ManifestToProto/ProtoToManifest with round-trip tests. |

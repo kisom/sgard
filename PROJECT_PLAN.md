@@ -106,17 +106,17 @@ Depends on Step 5.
 
 *Can be done in parallel with Step 11.*
 
-- [ ] `garden/garden.go`: `GetManifest()`, `BlobExists()`, `ReadBlob()`, `WriteBlob()`, `ReplaceManifest()`
-- [ ] Tests for each accessor
-- [ ] Verify: `go test ./garden/...`
+- [x] `garden/garden.go`: `GetManifest()`, `BlobExists()`, `ReadBlob()`, `WriteBlob()`, `ReplaceManifest()`
+- [x] Tests for each accessor
+- [x] Verify: `go test ./garden/...`
 
 ### Step 11: Proto-Manifest Conversion
 
 *Can be done in parallel with Step 10.*
 
-- [ ] `server/convert.go`: `ManifestToProto`, `ProtoToManifest`, entry helpers
-- [ ] `server/convert_test.go`: round-trip test
-- [ ] Verify: `go test ./server/...`
+- [x] `server/convert.go`: `ManifestToProto`, `ProtoToManifest`, entry helpers
+- [x] `server/convert_test.go`: round-trip test
+- [x] Verify: `go test ./server/...`
 
 ### Step 12: Server Implementation (No Auth)
 
