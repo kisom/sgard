@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 4 in progress. Steps 21–26 complete, ready for Step 27.
+**Phase:** Phase 4 complete. All 7 steps done (21–27).
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 27: Phase 4 Polish + Release.
+Phase 5: Multi-Repo + Per-Machine Inclusion (to be planned).
 
 ## Known Issues / Decisions Deferred
 
@@ -90,3 +90,4 @@ Step 27: Phase 4 Polish + Release.
 | 2026-03-24 | 24 | DEK rotation: RotateDEK re-encrypts all blobs, re-wraps all slots, CLI command, 4 tests. |
 | 2026-03-24 | 25 | Real FIDO2: go-libfido2 bindings, build tag gating, CLI wiring, nix sgard-fido2 package. |
 | 2026-03-24 | 26 | Test cleanup: tightened lint, 3 combo tests (encrypted+locked, dir-only+locked, toggle), stale doc fixes. |
+| 2026-03-24 | 27 | Phase 4 polish: e2e test (TLS+encryption+locked+push/pull), final doc review. Phase 4 complete. |

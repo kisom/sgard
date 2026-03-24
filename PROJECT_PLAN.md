@@ -270,11 +270,11 @@ Depends on Steps 17, 18.
 
 ### Step 27: Phase 4 Polish + Release
 
-- [ ] Update all docs (ARCHITECTURE.md, README.md, CLAUDE.md, PROGRESS.md)
-- [ ] Update flake.nix vendorHash if deps changed
-- [ ] Update .goreleaser.yaml if needed
-- [ ] E2e test covering TLS + encryption + locked files
-- [ ] Verify: all tests pass, lint clean, both binaries compile
+- [x] Update all docs (ARCHITECTURE.md, README.md, CLAUDE.md, PROGRESS.md)
+- [x] Update flake.nix vendorHash (done in Step 25)
+- [x] .goreleaser.yaml — no changes needed (CGO_ENABLED=0 is correct for release binaries)
+- [x] E2e test: integration/phase4_test.go covering TLS + encryption + locked files + push/pull
+- [x] Verify: all tests pass, lint clean, both binaries compile
 
 ## Phase 5: Multi-Repo + Per-Machine Inclusion
 
