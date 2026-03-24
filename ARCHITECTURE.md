@@ -576,6 +576,7 @@ the same server? This requires a proper trust/key-authority design.
 sgard/
   cmd/sgard/              # CLI entry point — one file per command
     main.go               # cobra root command, --repo/--remote/--ssh-key flags
+    encrypt.go            # sgard encrypt init/add-fido2/remove-slot/list-slots/change-passphrase
     push.go pull.go prune.go mirror.go
     init.go add.go remove.go checkpoint.go
     restore.go status.go verify.go list.go diff.go version.go
@@ -585,6 +586,8 @@ sgard/
 
   garden/                 # Core business logic — one file per operation
     garden.go             # Garden struct, Init, Open, Add, Checkpoint, Status, accessors
+    encrypt.go            # EncryptInit, UnlockDEK, encrypt/decrypt blobs, slot management
+    encrypt_fido2.go      # FIDO2Device interface, AddFIDO2Slot, unlock resolution
     restore.go mirror.go prune.go remove.go verify.go list.go diff.go
     hasher.go             # SHA-256 file hashing
 
@@ -596,12 +599,12 @@ sgard/
 
   server/                 # gRPC server implementation
     server.go             # GardenSync RPC handlers with RWMutex
-    auth.go               # SSH key auth interceptor
-    convert.go            # proto ↔ manifest type conversion
+    auth.go               # JWT token + SSH key auth interceptor, Authenticate RPC
+    convert.go            # proto ↔ manifest type conversion (incl. encryption)
 
   client/                 # gRPC client library
-    client.go             # Push, Pull, Prune methods
-    auth.go               # SSHCredentials (PerRPCCredentials), LoadSigner
+    client.go             # Push, Pull, Prune with auto-auth retry
+    auth.go               # TokenCredentials, LoadSigner, Authenticate, token caching
 
   sgardpb/                # Generated protobuf + gRPC Go code
   proto/sgard/v1/         # Proto source definitions
@@ -622,10 +625,11 @@ type Garden struct {
     root         string
     manifestPath string
     clock        clockwork.Clock
+    dek          []byte  // unlocked data encryption key
 }
 
 // Local operations
-func (g *Garden) Add(paths []string) error
+func (g *Garden) Add(paths []string, encrypt ...bool) error
 func (g *Garden) Remove(paths []string) error
 func (g *Garden) Checkpoint(message string) error
 func (g *Garden) Restore(paths []string, force bool, confirm func(string) bool) error
@@ -636,6 +640,14 @@ func (g *Garden) Diff(path string) (string, error)
 func (g *Garden) Prune() (int, error)
 func (g *Garden) MirrorUp(paths []string) error
 func (g *Garden) MirrorDown(paths []string, force bool, confirm func(string) bool) error
+
+// Encryption
+func (g *Garden) EncryptInit(passphrase string) error
+func (g *Garden) UnlockDEK(prompt func() (string, error), fido2 ...FIDO2Device) error
+func (g *Garden) AddFIDO2Slot(device FIDO2Device, label string) error
+func (g *Garden) RemoveSlot(name string) error
+func (g *Garden) ListSlots() map[string]string
+func (g *Garden) ChangePassphrase(newPassphrase string) error
 
 // Accessors (used by server package)
 func (g *Garden) GetManifest() *manifest.Manifest

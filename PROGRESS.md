@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 3 in progress. Steps 17–19 complete, ready for Step 20.
+**Phase:** Phase 3 complete (Steps 17–20). Encryption fully implemented.
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 20: Encryption Polish + Release.
+Phase 3 complete. Future: TLS transport, shell completions, manifest signing, real FIDO2 hardware binding.
 
 ## Known Issues / Decisions Deferred
 
@@ -81,3 +81,4 @@ Step 20: Encryption Polish + Release.
 | 2026-03-24 | 17 | Encryption core: Argon2id KEK, XChaCha20 DEK wrap/unwrap, selective per-file encrypt in Add/Checkpoint/Restore/Diff/Status. 10 tests. |
 | 2026-03-24 | 18 | FIDO2: FIDO2Device interface, AddFIDO2Slot, unlock resolution (fido2 first → passphrase fallback), mock device, 6 tests. |
 | 2026-03-24 | 19 | Encryption CLI: encrypt init/add-fido2/remove-slot/list-slots/change-passphrase, --encrypt on add, proto + convert updates. |
+| 2026-03-24 | 20 | Polish: encryption e2e test, all docs updated, flake vendorHash updated. |

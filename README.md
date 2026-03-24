@@ -88,6 +88,17 @@ sgard restore --repo /mnt/usb/dotfiles
 | `mirror down <path> [-f]` | Sync manifest → filesystem (restore + delete untracked) |
 | `version` | Print the version |
 
+### Encryption
+
+| Command | Description |
+|---|---|
+| `encrypt init` | Set up encryption (creates DEK + passphrase slot) |
+| `encrypt add-fido2 [--label]` | Add a FIDO2 KEK slot |
+| `encrypt remove-slot <name>` | Remove a KEK slot |
+| `encrypt list-slots` | List all KEK slots |
+| `encrypt change-passphrase` | Change the passphrase |
+| `add --encrypt <path>...` | Track files with encryption |
+
 ### Remote sync
 
 | Command | Description |
@@ -120,6 +131,31 @@ sgard pull --remote myserver:9473
 
 Authentication uses your existing SSH keys (ssh-agent, `~/.ssh/id_ed25519`,
 or `--ssh-key`). No passwords or certificates to manage.
+
+## Encryption
+
+Sensitive files can be encrypted individually:
+
+```sh
+# Set up encryption (once per repo)
+sgard encrypt init
+
+# Add encrypted files
+sgard add --encrypt ~/.ssh/config ~/.aws/credentials
+
+# Plaintext files work as before
+sgard add ~/.bashrc
+```
+
+Encrypted blobs use XChaCha20-Poly1305. The data encryption key (DEK)
+is wrapped by a passphrase-derived key (Argon2id). FIDO2 hardware keys
+are also supported as an alternative KEK source — sgard tries FIDO2
+first and falls back to passphrase automatically.
+
+The encryption config (wrapped DEKs, salts) lives in the manifest, so
+it syncs with push/pull. The server never has the DEK.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full encryption design.
 
 ## How it works
 

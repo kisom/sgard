@@ -51,18 +51,19 @@ make proto
 - `github.com/jonboulle/clockwork` — injectable clock for deterministic tests
 - `google.golang.org/grpc` — gRPC runtime
 - `google.golang.org/protobuf` — protobuf runtime
-- `golang.org/x/crypto` — SSH key auth (ssh, ssh/agent)
+- `golang.org/x/crypto` — SSH key auth (ssh, ssh/agent), Argon2id, XChaCha20-Poly1305
+- `github.com/golang-jwt/jwt/v5` — JWT token auth
 
 ## Package Structure
 
 ```
 cmd/sgard/    CLI entry point (cobra commands, pure wiring)
 cmd/sgardd/   gRPC server daemon
-garden/       Core business logic (Garden struct orchestrating everything)
+garden/       Core business logic (Garden struct, encryption via encrypt.go/encrypt_fido2.go)
 manifest/     YAML manifest parsing (Manifest/Entry structs, Load/Save)
 store/        Content-addressable blob storage (SHA-256 keyed)
-server/       gRPC server (RPC handlers, SSH auth interceptor, proto conversion)
-client/       gRPC client library (Push, Pull, Prune, SSH credentials)
+server/       gRPC server (RPC handlers, JWT/SSH auth interceptor, proto conversion)
+client/       gRPC client library (Push, Pull, Prune, token auth with auto-renewal)
 sgardpb/      Generated protobuf + gRPC Go code
 ```
 

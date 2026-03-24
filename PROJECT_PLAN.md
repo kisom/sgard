@@ -215,10 +215,10 @@ Depends on Steps 17, 18.
 
 ### Step 20: Encryption Polish + Release
 
-- [ ] E2e test: add encrypted + plaintext files, push to server, pull to fresh repo, decrypt and verify
-- [ ] Update ARCHITECTURE.md, README.md, CLAUDE.md
-- [ ] Update flake.nix vendorHash if deps changed
-- [ ] Verify: all tests pass, lint clean
+- [x] E2e test: full encryption lifecycle (init, add encrypted+plaintext, checkpoint, modify, status, restore, verify, diff, slot management, passphrase change)
+- [x] Update ARCHITECTURE.md, README.md, CLAUDE.md
+- [x] Update flake.nix vendorHash
+- [x] Verify: all tests pass, lint clean
 
 ## Future Steps (Not Phase 3)
 
