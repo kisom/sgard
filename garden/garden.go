@@ -98,9 +98,55 @@ func (g *Garden) SetClock(c clockwork.Clock) {
 	g.clock = c
 }
 
+// addEntry adds a single file or symlink to the manifest. The abs path must
+// already be resolved and info must come from os.Lstat. If skipDup is true,
+// already-tracked paths are silently skipped instead of returning an error.
+func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup bool) error {
+	tilded := toTildePath(abs)
+
+	if g.findEntry(tilded) != nil {
+		if skipDup {
+			return nil
+		}
+		return fmt.Errorf("already tracking %s", tilded)
+	}
+
+	entry := manifest.Entry{
+		Path:    tilded,
+		Mode:    fmt.Sprintf("%04o", info.Mode().Perm()),
+		Updated: now,
+	}
+
+	switch {
+	case info.Mode()&os.ModeSymlink != 0:
+		target, err := os.Readlink(abs)
+		if err != nil {
+			return fmt.Errorf("reading symlink %s: %w", abs, err)
+		}
+		entry.Type = "link"
+		entry.Target = target
+
+	default:
+		data, err := os.ReadFile(abs)
+		if err != nil {
+			return fmt.Errorf("reading file %s: %w", abs, err)
+		}
+		hash, err := g.store.Write(data)
+		if err != nil {
+			return fmt.Errorf("storing blob for %s: %w", abs, err)
+		}
+		entry.Type = "file"
+		entry.Hash = hash
+	}
+
+	g.manifest.Files = append(g.manifest.Files, entry)
+	return nil
+}
+
 // Add tracks new files, directories, or symlinks. Each path is resolved
 // to an absolute path, inspected for its type, and added to the manifest.
-// Regular files are hashed and stored in the blob store.
+// Regular files are hashed and stored in the blob store. Directories are
+// recursively walked and all leaf files and symlinks are added individually.
 func (g *Garden) Add(paths []string) error {
 	now := g.clock.Now().UTC()
 
@@ -115,45 +161,29 @@ func (g *Garden) Add(paths []string) error {
 			return fmt.Errorf("stat %s: %w", abs, err)
 		}
 
-		tilded := toTildePath(abs)
-
-		// Check if already tracked.
-		if g.findEntry(tilded) != nil {
-			return fmt.Errorf("already tracking %s", tilded)
-		}
-
-		entry := manifest.Entry{
-			Path:    tilded,
-			Mode:    fmt.Sprintf("%04o", info.Mode().Perm()),
-			Updated: now,
-		}
-
-		switch {
-		case info.Mode()&os.ModeSymlink != 0:
-			target, err := os.Readlink(abs)
+		if info.IsDir() {
+			// Recursively walk the directory, adding all files and symlinks.
+			err := filepath.WalkDir(abs, func(path string, d os.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+				if d.IsDir() {
+					return nil // skip directory entries themselves
+				}
+				fi, err := os.Lstat(path)
+				if err != nil {
+					return fmt.Errorf("stat %s: %w", path, err)
+				}
+				return g.addEntry(path, fi, now, true)
+			})
 			if err != nil {
-				return fmt.Errorf("reading symlink %s: %w", abs, err)
+				return fmt.Errorf("walking directory %s: %w", abs, err)
 			}
-			entry.Type = "link"
-			entry.Target = target
-
-		case info.IsDir():
-			entry.Type = "directory"
-
-		default:
-			data, err := os.ReadFile(abs)
-			if err != nil {
-				return fmt.Errorf("reading file %s: %w", abs, err)
+		} else {
+			if err := g.addEntry(abs, info, now, false); err != nil {
+				return err
 			}
-			hash, err := g.store.Write(data)
-			if err != nil {
-				return fmt.Errorf("storing blob for %s: %w", abs, err)
-			}
-			entry.Type = "file"
-			entry.Hash = hash
 		}
-
-		g.manifest.Files = append(g.manifest.Files, entry)
 	}
 
 	g.manifest.Updated = now

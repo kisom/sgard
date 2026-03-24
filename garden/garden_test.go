@@ -135,17 +135,29 @@ func TestAddDirectory(t *testing.T) {
 	if err := os.Mkdir(testDir, 0o755); err != nil {
 		t.Fatalf("creating test dir: %v", err)
 	}
+	testFile := filepath.Join(testDir, "inside.txt")
+	if err := os.WriteFile(testFile, []byte("inside"), 0o644); err != nil {
+		t.Fatalf("writing file inside dir: %v", err)
+	}
 
 	if err := g.Add([]string{testDir}); err != nil {
 		t.Fatalf("Add: %v", err)
 	}
 
-	entry := g.manifest.Files[0]
-	if entry.Type != "directory" {
-		t.Errorf("expected type directory, got %s", entry.Type)
+	if len(g.manifest.Files) != 1 {
+		t.Fatalf("expected 1 file, got %d", len(g.manifest.Files))
 	}
-	if entry.Hash != "" {
-		t.Error("directories should have no hash")
+
+	entry := g.manifest.Files[0]
+	if entry.Type != "file" {
+		t.Errorf("expected type file, got %s", entry.Type)
+	}
+	if entry.Hash == "" {
+		t.Error("expected non-empty hash")
+	}
+	expectedPath := toTildePath(testFile)
+	if entry.Path != expectedPath {
+		t.Errorf("expected path %s, got %s", expectedPath, entry.Path)
 	}
 }
 
