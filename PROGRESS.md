@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 3 in progress. Step 17 complete, ready for Step 18.
+**Phase:** Phase 3 in progress. Steps 17–18 complete, ready for Step 19.
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 18: FIDO2 support.
+Step 19: Encryption CLI + Slot Management.
 
 ## Known Issues / Decisions Deferred
 
@@ -79,3 +79,4 @@ Step 18: FIDO2 support.
 | 2026-03-24 | — | JWT token auth implemented (transparent auto-renewal, XDG token cache, ReauthChallenge fast path). |
 | 2026-03-24 | — | Phase 3 encryption design: selective per-file encryption, KEK slots (passphrase + fido2/label), manifest-embedded config. |
 | 2026-03-24 | 17 | Encryption core: Argon2id KEK, XChaCha20 DEK wrap/unwrap, selective per-file encrypt in Add/Checkpoint/Restore/Diff/Status. 10 tests. |
+| 2026-03-24 | 18 | FIDO2: FIDO2Device interface, AddFIDO2Slot, unlock resolution (fido2 first → passphrase fallback), mock device, 6 tests. |

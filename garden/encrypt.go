@@ -75,9 +75,10 @@ func (g *Garden) EncryptInit(passphrase string) error {
 }
 
 // UnlockDEK attempts to unwrap the DEK using available KEK slots.
-// Tries passphrase slots (prompting via the provided function).
-// The DEK is cached on the Garden for the duration of the command.
-func (g *Garden) UnlockDEK(promptPassphrase func() (string, error)) error {
+// Resolution order: try all fido2/* slots first (if a device is provided),
+// then fall back to the passphrase slot. The DEK is cached on the Garden
+// for the duration of the command.
+func (g *Garden) UnlockDEK(promptPassphrase func() (string, error), fido2Device ...FIDO2Device) error {
 	if g.dek != nil {
 		return nil // already unlocked
 	}
@@ -87,7 +88,14 @@ func (g *Garden) UnlockDEK(promptPassphrase func() (string, error)) error {
 		return fmt.Errorf("encryption not initialized; run sgard encrypt init")
 	}
 
-	// Try passphrase slot.
+	// 1. Try FIDO2 slots first.
+	if len(fido2Device) > 0 && fido2Device[0] != nil {
+		if g.unlockFIDO2(fido2Device[0]) {
+			return nil
+		}
+	}
+
+	// 2. Fall back to passphrase slot.
 	if slot, ok := enc.KekSlots["passphrase"]; ok {
 		if promptPassphrase == nil {
 			return fmt.Errorf("passphrase required but no prompt available")

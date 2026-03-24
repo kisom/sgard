@@ -197,11 +197,10 @@ Depends on Steps 13, 14.
 
 Depends on Step 17.
 
-- [ ] `garden/encrypt_fido2.go`: FIDO2 hmac-secret KEK derivation via libfido2
-- [ ] `garden/encrypt.go`: extend UnlockDEK to try fido2/* slots first (check credential_id against connected devices), fall back to passphrase
-- [ ] `garden/encrypt.go`: `AddFIDO2Slot(label string) error` — unlock DEK via existing slot, register FIDO2 credential, wrap DEK, add slot to manifest
-- [ ] Tests: FIDO2 slot add/unwrap (may need mock or skip on CI without hardware)
-- [ ] Verify: `go test ./... && go vet ./... && golangci-lint run ./...`
+- [x] `garden/encrypt_fido2.go`: FIDO2Device interface, AddFIDO2Slot, unlockFIDO2, defaultFIDO2Label
+- [x] `garden/encrypt.go`: UnlockDEK tries fido2/* slots first (credential_id matching), falls back to passphrase
+- [x] `garden/encrypt_fido2_test.go`: mock FIDO2 device, 6 tests (add slot, duplicate rejected, unlock via FIDO2, fallback to passphrase, persistence, encrypted round-trip with FIDO2)
+- [x] Verify: `go test ./... && go vet ./... && golangci-lint run ./...`
 
 ### Step 19: Encryption CLI + Slot Management
 
