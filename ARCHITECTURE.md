@@ -69,18 +69,27 @@ files:
 
 # Encryption config — only present if sgard encrypt init has been run.
 # Travels with the manifest so a new machine can decrypt after pull.
+# KEK slots are a map keyed by user-chosen label.
 encryption:
   algorithm: xchacha20-poly1305
-  kek_sources:
-    - type: fido2
-      salt: "base64-encoded-16-byte-salt"
-      wrapped_dek: "base64-encoded-nonce+ciphertext+tag"
-    - type: passphrase
+  kek_slots:
+    passphrase:
+      type: passphrase
       argon2_time: 3
       argon2_memory: 65536
       argon2_threads: 4
-      salt: "base64-encoded-16-byte-salt"
-      wrapped_dek: "base64-encoded-nonce+ciphertext+tag"
+      salt: "base64..."
+      wrapped_dek: "base64..."
+    fido2/workstation:
+      type: fido2
+      credential_id: "base64..."
+      salt: "base64..."
+      wrapped_dek: "base64..."
+    fido2/laptop:
+      type: fido2
+      credential_id: "base64..."
+      salt: "base64..."
+      wrapped_dek: "base64..."
 ```
 
 ### Blob Store
@@ -333,19 +342,21 @@ requires re-wrapping the DEK, not re-encrypting every blob.
 
 ### KEK Derivation
 
-Two methods. A repo may have either or both:
+Two slot types. A repo has one `passphrase` slot and zero or more
+`fido2/<label>` slots:
 
-**Passphrase:**
+**Passphrase slot** (at most one per repo):
 - KEK = Argon2id(passphrase, salt, time=3, memory=64MB, threads=4)
-- Salt and Argon2id parameters stored in the manifest
-  (`encryption.kek_sources[]` with `type: passphrase`)
+- Salt and Argon2id parameters stored in the slot entry
+- Slot key: `passphrase`
 
-**FIDO2 hmac-secret:**
+**FIDO2 slots** (one per device, labeled):
 - KEK = HMAC-SHA256 output from the FIDO2 authenticator
-- The authenticator computes `HMAC(device_secret, salt)` where the salt
-  is stored in the manifest (`encryption.kek_sources[]` with `type: fido2`)
-- Requires a FIDO2 key that supports the `hmac-secret` extension
-- User touch is required to derive the KEK
+- The authenticator computes `HMAC(device_secret, salt)` using the
+  credential registered for this slot
+- `credential_id` in the slot entry ties it to a specific FIDO2
+  registration, allowing sgard to skip non-matching devices
+- Slot key: `fido2/<label>` (defaults to hostname, overridable)
 
 ### Blob Encryption
 
@@ -417,60 +428,56 @@ behavior), and `plaintext_hash` and `encrypted` are omitted.
 
 ### DEK Storage
 
-The DEK is wrapped (encrypted) by each KEK source using
-XChaCha20-Poly1305 and stored in the manifest as base64:
+Each slot wraps the DEK independently using XChaCha20-Poly1305,
+stored as base64 in the slot's `wrapped_dek` field:
 
 ```
 wrapped_dek = base64([24-byte nonce][encrypted DEK + 16-byte tag])
 ```
 
-Each KEK source in `encryption.kek_sources[]` carries its own
-`wrapped_dek`. This means the manifest is fully self-contained —
-pulling it to a new machine gives you everything needed to decrypt
-(given the user's secret).
+The manifest is fully self-contained — pulling it to a new machine
+gives you everything needed to decrypt (given the user's secret).
 
 ### Unlock Resolution
 
-When sgard needs the DEK, it reads the `encryption` section of the
-manifest to discover which sources are configured, then tries them
-in preference order:
+When sgard needs the DEK, it reads `encryption.kek_slots` from the
+manifest and tries slots automatically:
 
-1. **FIDO2** (if a `type: fido2` source exists):
-   - Check if a FIDO2 device is connected
-   - If yes → prompt for touch, derive KEK, unwrap DEK
-   - If device not found or touch times out → fall through
+1. **FIDO2 slots** (all `fido2/*` slots, in map order):
+   - For each: check if a connected FIDO2 device matches the
+     slot's `credential_id`
+   - If match found → prompt for touch, derive KEK, unwrap DEK
+   - If no device matches or touch times out → try next slot
 
-2. **Passphrase** (if a `type: passphrase` source exists):
+2. **Passphrase slot** (if `passphrase` slot exists):
    - Prompt for passphrase on stdin
    - Derive KEK via Argon2id, unwrap DEK
 
-3. **No sources succeed** → error
+3. **No slots succeed** → error
 
-FIDO2 is preferred because it requires no typing — just a touch. The
-passphrase is the fallback for when the FIDO2 key isn't physically
-present (e.g., on a different machine). The user never specifies which
-method to use; sgard figures it out.
+FIDO2 is tried first because it requires no typing — just a touch.
+The `credential_id` check avoids prompting for touch on a device that
+can't unwrap the slot, which matters when multiple FIDO2 keys are
+connected. The passphrase slot is the universal fallback.
 
-The `kek_sources` list in the manifest is ordered by preference
-(FIDO2 first). The presence of the `encryption` section indicates the
-repo has encryption capability. Individual files opt in via `--encrypt`
-at add time.
+The user never specifies which slot to use. The presence of the
+`encryption` section indicates the repo has encryption capability.
+Individual files opt in via `--encrypt` at add time.
 
 ### CLI Integration
 
 **Setting up encryption (creates DEK, adds `encryption` to manifest):**
 ```sh
-sgard encrypt init                # passphrase only
-sgard encrypt init --fido2        # FIDO2 + passphrase fallback
+sgard encrypt init                          # passphrase slot only
+sgard encrypt init --fido2                  # fido2/<hostname> + passphrase slots
 ```
 
-When `--fido2` is specified, sgard creates both sources: the FIDO2
-wrap (primary) and immediately prompts for a passphrase to create the
-fallback wrap. This ensures the user is never locked out if they lose
-the FIDO2 key. Both wrapped DEKs and salts are stored inline in the
-manifest as base64.
+When `--fido2` is specified, sgard creates both slots: the FIDO2 slot
+(named `fido2/<hostname>` by default) and immediately prompts for a
+passphrase to create the fallback slot. This ensures the user is never
+locked out if they lose the FIDO2 key.
 
-Without `--fido2`, only the passphrase source is created.
+Without `--fido2`, only the `passphrase` slot is created.
 
 **Adding encrypted files:**
 ```sh
@@ -478,16 +485,18 @@ sgard add --encrypt ~/.ssh/config ~/.aws/credentials
 sgard add ~/.bashrc               # not encrypted
 ```
 
-**Adding a KEK source to an existing repo:**
+**Managing slots:**
 ```sh
-sgard encrypt add-fido2           # add FIDO2 (auto-unlocks via passphrase first)
-sgard encrypt add-passphrase      # add passphrase (auto-unlocks via FIDO2 first)
+sgard encrypt add-fido2                     # adds fido2/<hostname>
+sgard encrypt add-fido2 --label yubikey-5   # adds fido2/yubikey-5
+sgard encrypt remove-slot fido2/old-laptop  # removes a slot
+sgard encrypt list-slots                    # shows all slot names and types
+sgard encrypt change-passphrase             # prompts for old and new
 ```
 
-**Changing a passphrase:**
-```sh
-sgard encrypt change-passphrase   # prompts for old and new
-```
+Adding a slot auto-unlocks the DEK via an existing slot first (e.g.,
+`add-fido2` will prompt for the passphrase to unwrap the DEK, then
+re-wrap it with the new FIDO2 key).
 
 **Unlocking:**
 Operations that touch encrypted entries (add --encrypt, checkpoint,
@@ -537,21 +546,22 @@ encrypted blobs as opaque bytes. The server cannot decrypt file
 contents.
 
 When pulling to a new machine:
-1. The manifest arrives with the `encryption` section intact
-2. The wrapped DEKs and salts are present in the manifest
-3. The user provides their passphrase (or touches their FIDO2 key)
-4. sgard derives the KEK, unwraps the DEK, decrypts blobs on restore
+1. The manifest arrives with all `kek_slots` intact
+2. The user provides their passphrase (universal fallback)
+3. sgard derives the KEK, unwraps the DEK, decrypts blobs on restore
 
-No additional setup is needed on the new machine beyond having the
-passphrase or a FIDO2 key. The manifest carries everything.
+No additional setup is needed beyond having the passphrase.
 
-**FIDO2 cross-machine note:** FIDO2 hmac-secret is device-bound. A
-different physical key on machine B produces a different KEK, so the
-FIDO2 `wrapped_dek` from machine A won't unwrap. The passphrase
-fallback is what enables cross-machine decryption. A user who wants
-FIDO2 on multiple machines must run `sgard encrypt add-fido2` on each
-machine (which re-wraps the DEK with that machine's FIDO2 key and adds
-a new source to the manifest).
+**Adding FIDO2 on a new machine:** FIDO2 hmac-secret is device-bound —
+a different physical key produces a different KEK. After pulling to a
+new machine, the user runs `sgard encrypt add-fido2` which:
+1. Unlocks the DEK via the passphrase slot
+2. Registers a new FIDO2 credential on the local device
+3. Wraps the DEK with the new FIDO2 KEK
+4. Adds a `fido2/<hostname>` slot to the manifest
+
+On next push, the new slot propagates to the server and other machines.
+Each machine accumulates its own FIDO2 slot over time.
 
 ### Future: Manifest Signing
 
