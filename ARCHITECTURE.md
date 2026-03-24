@@ -161,11 +161,102 @@ replaces its manifest.
 
 ## Authentication
 
-SSH key signing via gRPC metadata interceptors:
-- Server loads an `authorized_keys` file (standard SSH format)
-- Client signs a nonce+timestamp with SSH private key (via ssh-agent or key file)
-- Signature + public key sent as gRPC metadata on every call
-- 5-minute timestamp window prevents replay
+Authentication is designed to be transparent — the user never explicitly
+logs in or manages credentials. It uses SSH keys they already have.
+
+### Overview
+
+Two mechanisms, layered:
+
+1. **SSH key signing** — used to obtain a token or when no valid token exists
+2. **JWT token** — used for all subsequent requests, cached on disk
+
+From the user's perspective, authentication is automatic. The client
+handles token acquisition, caching, and renewal without prompting.
+
+### Token-Based Auth (Primary Path)
+
+The server issues signed JWT tokens valid for 30 days. The client caches
+the token and attaches it as gRPC metadata on every call.
+
+```
+service GardenSync {
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+  // ... other RPCs
+}
+```
+
+**Authenticate RPC:**
+- Client sends an SSH-signed challenge (nonce + timestamp + public key)
+- Server verifies the signature against its `authorized_keys` file
+- Server returns a JWT signed with its own secret key
+- JWT claims: public key fingerprint, issued-at, 30-day expiry
+
+**Normal request flow:**
+1. Client reads cached token from `$XDG_STATE_HOME/sgard/token`
+   (falls back to `~/.local/state/sgard/token`)
+2. Client attaches token as `x-sgard-auth-token` gRPC metadata
+3. Server verifies JWT signature and expiry
+4. If valid → request proceeds
+5. If expired or invalid → server returns `Unauthenticated`
+
+**Auto-renewal flow (transparent to user):**
+1. Client sends request with cached token
+2. Server rejects with `Unauthenticated`
+3. Client interceptor catches the error
+4. Client calls `Authenticate` RPC with SSH signature
+5. Server issues new JWT
+6. Client caches new token to disk
+7. Client retries the original request with the new token
+
+### SSH Key Signing (Fallback)
+
+Used only during the `Authenticate` RPC. The client signs a challenge
+payload to prove possession of an authorized SSH private key.
+
+**Challenge payload:** `nonce (32 random bytes) || timestamp (big-endian int64)`
+
+**Metadata fields on Authenticate RPC:**
+- `x-sgard-auth-nonce` — base64-encoded 32-byte nonce
+- `x-sgard-auth-timestamp` — Unix seconds as decimal string
+- `x-sgard-auth-signature` — base64-encoded SSH signature
+- `x-sgard-auth-pubkey` — SSH public key in authorized_keys format
+
+**Server verification:**
+- Parse public key, check fingerprint against `authorized_keys` file
+- Verify SSH signature over the payload
+- Check timestamp is within 5-minute window (prevents replay)
+
+### Server-Side Token Management
+
+The server does not store tokens. JWTs are stateless — the server signs
+them with a secret key and verifies its own signature on each request.
+
+**Secret key:** Generated on first startup, stored at `<repo>/jwt.key`
+(32 random bytes). If the key file is deleted, all outstanding tokens
+become invalid and clients re-authenticate automatically.
+
+**No revocation mechanism.** For a single-user personal sync tool,
+revocation is unnecessary. Removing a key from `authorized_keys`
+prevents new token issuance. Existing tokens expire naturally within
+30 days. Deleting `jwt.key` invalidates all tokens immediately.
+
+### Client-Side Token Storage
+
+Token cached at `$XDG_STATE_HOME/sgard/token` (per XDG Base Directory
+spec, state is "data that should persist between restarts but isn't
+important enough to back up"). Falls back to `~/.local/state/sgard/token`.
+
+The token file contains the raw JWT string. File permissions are set to
+`0600`.
+
+### Key Resolution
+
+SSH key resolution order (for initial authentication):
+1. `--ssh-key` flag (explicit path to private key)
+2. `SGARD_SSH_KEY` environment variable
+3. ssh-agent (if `SSH_AUTH_SOCK` is set, uses first available key)
+4. Default paths: `~/.ssh/id_ed25519`, `~/.ssh/id_rsa`
 
 ## Go Package Structure
 
