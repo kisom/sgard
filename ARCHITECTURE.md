@@ -322,17 +322,17 @@ requires re-wrapping the DEK, not re-encrypting every blob.
 
 ### KEK Derivation
 
-Two methods, selected at repo initialization:
+Two methods. A repo may have either or both:
 
 **Passphrase:**
 - KEK = Argon2id(passphrase, salt, time=3, memory=64MB, threads=4)
-- Salt stored at `<repo>/kek.salt` (16 random bytes)
-- Argon2id parameters stored alongside the salt for forward compatibility
+- Salt stored at `<repo>/kek-passphrase.salt` (16 random bytes)
+- Argon2id parameters stored in `encryption.yaml` for forward compat
 
 **FIDO2 hmac-secret:**
 - KEK = HMAC-SHA256 output from the FIDO2 authenticator
 - The authenticator computes `HMAC(device_secret, salt)` where the salt
-  is stored at `<repo>/kek.salt`
+  is stored at `<repo>/kek-fido2.salt`
 - Requires a FIDO2 key that supports the `hmac-secret` extension
 - User touch is required to derive the KEK
 
@@ -413,18 +413,39 @@ at `<repo>/dek.enc`:
 [24-byte nonce][encrypted DEK + 16-byte tag]
 ```
 
-### Multiple KEK Sources
+### KEK Sources and Unlock Resolution
 
-A repo can have multiple KEK sources (e.g., both a passphrase and a
-FIDO2 key). Each source wraps the same DEK independently:
+A repo can have one or both KEK sources. Each wraps the same DEK
+independently:
 
 ```
 <repo>/dek.enc.passphrase    # DEK wrapped by passphrase-derived KEK
 <repo>/dek.enc.fido2         # DEK wrapped by FIDO2-derived KEK
 ```
 
-Either source can unwrap the DEK. Adding a new source requires the DEK
-(unlocked by any existing source) to create the new wrapped copy.
+Either source can unwrap the DEK. Adding a second source requires the
+DEK (unlocked by the existing source) to create the new wrapped copy.
+
+**Automatic unlock resolution (no user flags needed):**
+
+When sgard needs the DEK, it reads `encryption.yaml` to discover which
+sources are configured, then tries them in order:
+
+1. **FIDO2** (if `dek.enc.fido2` exists):
+   - Check if a FIDO2 device is connected
+   - If yes → prompt for touch, derive KEK, unwrap DEK
+   - If device not found or touch times out → fall through
+
+2. **Passphrase** (if `dek.enc.passphrase` exists):
+   - Prompt for passphrase on stdin
+   - Derive KEK via Argon2id, unwrap DEK
+
+3. **No sources succeed** → error
+
+FIDO2 is preferred because it requires no typing — just a touch. The
+passphrase is the fallback for when the FIDO2 key isn't physically
+present (e.g., on a different machine). The user never specifies which
+method to use; sgard figures it out.
 
 ### Repo Configuration
 
@@ -433,28 +454,35 @@ Encryption config stored at `<repo>/encryption.yaml`:
 ```yaml
 algorithm: xchacha20-poly1305
 kek_sources:
+  - type: fido2
+    salt_file: kek-fido2.salt
+    dek_file: dek.enc.fido2
   - type: passphrase
     argon2_time: 3
     argon2_memory: 65536  # KiB
     argon2_threads: 4
-    salt_file: kek.salt
+    salt_file: kek-passphrase.salt
     dek_file: dek.enc.passphrase
-  - type: fido2
-    salt_file: kek.salt
-    dek_file: dek.enc.fido2
 ```
 
-The presence of `encryption.yaml` indicates the repo has a DEK
-(encryption capability). Individual files opt in via `--encrypt` at
-add time.
+The `kek_sources` list is ordered by preference (FIDO2 first). The
+presence of `encryption.yaml` indicates the repo has encryption
+capability. Individual files opt in via `--encrypt` at add time.
 
 ### CLI Integration
 
-**Setting up encryption (creates DEK and first KEK source):**
+**Setting up encryption (creates DEK and wraps it):**
 ```sh
-sgard encrypt init                # prompts for passphrase
-sgard encrypt init --fido2        # uses FIDO2 key
+sgard encrypt init                # passphrase only
+sgard encrypt init --fido2        # FIDO2 + passphrase fallback
 ```
+
+When `--fido2` is specified, sgard creates both sources: the FIDO2
+wrap (primary) and immediately prompts for a passphrase to create the
+fallback wrap. This ensures the user is never locked out if they lose
+the FIDO2 key.
+
+Without `--fido2`, only the passphrase source is created.
 
 **Adding encrypted files:**
 ```sh
@@ -464,8 +492,8 @@ sgard add ~/.bashrc               # not encrypted
 
 **Adding a KEK source to an existing repo:**
 ```sh
-sgard encrypt add-passphrase      # add passphrase (requires existing unlock)
-sgard encrypt add-fido2           # add FIDO2 key (requires existing unlock)
+sgard encrypt add-fido2           # add FIDO2 (auto-unlocks via passphrase first)
+sgard encrypt add-passphrase      # add passphrase (auto-unlocks via FIDO2 first)
 ```
 
 **Changing a passphrase:**
@@ -475,8 +503,8 @@ sgard encrypt change-passphrase   # prompts for old and new
 
 **Unlocking:**
 Operations that touch encrypted entries (add --encrypt, checkpoint,
-restore, diff, mirror on encrypted files) prompt for the passphrase
-or FIDO2 touch automatically. The DEK is cached in memory for the
+restore, diff, mirror on encrypted files) trigger automatic unlock
+via the resolution order above. The DEK is cached in memory for the
 duration of the command.
 
 Operations that only touch plaintext entries never prompt — they work
