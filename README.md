@@ -68,6 +68,42 @@ sgard add ~/.bashrc --repo /mnt/usb/dotfiles
 sgard restore --repo /mnt/usb/dotfiles
 ```
 
+### Locked files
+
+Some files get overwritten by the system (desktop environments,
+package managers, etc.) but you want to keep them at a known-good
+state. Locked files are repo-authoritative — `restore` always
+overwrites them, and `checkpoint` never picks up the system's changes:
+
+```sh
+# XDG user-dirs.dirs gets reset by the desktop environment on login
+sgard add --lock ~/.config/user-dirs.dirs
+
+# The system overwrites it — status reports "drifted", not "modified"
+sgard status
+# drifted    ~/.config/user-dirs.dirs
+
+# Restore puts it back without prompting
+sgard restore
+```
+
+Use `add` (without `--lock`) when you intentionally want to update the
+repo with a new version of a locked file.
+
+### Directory-only entries
+
+Sometimes a directory must exist for software to work, but its
+contents are managed elsewhere. `--dir` tracks the directory itself
+without recursing:
+
+```sh
+# Ensure ~/.local/share/applications exists (some apps break without it)
+sgard add --dir ~/.local/share/applications
+```
+
+On `restore`, sgard creates the directory with the correct permissions
+but doesn't touch its contents.
+
 ## Commands
 
 ### Local
