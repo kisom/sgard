@@ -4,11 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-var repoFlag string
+var (
+	repoFlag   string
+	remoteFlag string
+	sshKeyFlag string
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "sgard",
@@ -23,8 +28,29 @@ func defaultRepo() string {
 	return filepath.Join(home, ".sgard")
 }
 
+// resolveRemote returns the remote address from flag, env, or repo config file.
+func resolveRemote() (string, error) {
+	if remoteFlag != "" {
+		return remoteFlag, nil
+	}
+	if env := os.Getenv("SGARD_REMOTE"); env != "" {
+		return env, nil
+	}
+	// Try <repo>/remote file.
+	data, err := os.ReadFile(filepath.Join(repoFlag, "remote"))
+	if err == nil {
+		addr := strings.TrimSpace(string(data))
+		if addr != "" {
+			return addr, nil
+		}
+	}
+	return "", fmt.Errorf("no remote configured; use --remote, SGARD_REMOTE, or create %s/remote", repoFlag)
+}
+
 func main() {
 	rootCmd.PersistentFlags().StringVar(&repoFlag, "repo", defaultRepo(), "path to sgard repository")
+	rootCmd.PersistentFlags().StringVar(&remoteFlag, "remote", "", "gRPC server address (host:port)")
+	rootCmd.PersistentFlags().StringVar(&sshKeyFlag, "ssh-key", "", "path to SSH private key")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

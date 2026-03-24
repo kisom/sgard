@@ -7,9 +7,9 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 2 in progress. Steps 9–14 complete, ready for Step 15.
+**Phase:** Phase 2 in progress. Steps 9–15 complete, ready for Step 16 (Polish).
 
-**Last updated:** 2026-03-23
+**Last updated:** 2026-03-24
 
 ## Completed Steps
 
@@ -42,7 +42,7 @@ Phase 2: gRPC Remote Sync.
 
 ## Up Next
 
-Step 15: CLI Wiring + Prune.
+Step 16: Polish + Release.
 
 ## Known Issues / Decisions Deferred
 
@@ -75,3 +75,4 @@ Step 15: CLI Wiring + Prune.
 | 2026-03-23 | 12b | Directory recursion in Add, mirror up/down commands, 7 tests. |
 | 2026-03-23 | 13 | Client library: Push, Pull, Prune with chunked blob streaming. 6 integration tests. |
 | 2026-03-23 | 14 | SSH key auth: server interceptor (authorized_keys, signature verification), client PerRPCCredentials (ssh-agent/key file). 8 tests including auth integration. |
+| 2026-03-24 | 15 | CLI wiring: push, pull, prune commands, sgardd daemon binary, --remote/--ssh-key flags, local prune with 2 tests. |

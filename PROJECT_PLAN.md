@@ -158,16 +158,16 @@ Depends on Step 12.
 
 Depends on Steps 13, 14.
 
-- [ ] `garden/prune.go`: `Prune() (int, error)` — collect referenced hashes from manifest, delete orphaned blobs, return count removed
-- [ ] `garden/prune_test.go`: add file, remove it, prune removes orphaned blob
-- [ ] `server/server.go`: add `Prune` RPC — server-side prune, returns count
-- [ ] `proto/sgard/v1/sgard.proto`: add `rpc Prune(PruneRequest) returns (PruneResponse)`
-- [ ] `client/client.go`: add `Prune()` method
-- [ ] `cmd/sgard/prune.go`: local prune; with `--remote` flag prunes remote instead
-- [ ] `cmd/sgard/main.go`: add `--remote`, `--ssh-key` persistent flags
-- [ ] `cmd/sgard/push.go`, `cmd/sgard/pull.go`
-- [ ] `cmd/sgardd/main.go`: flags, garden open, auth interceptor, gRPC serve
-- [ ] Verify: both binaries compile
+- [x] `garden/prune.go`: `Prune() (int, error)` — collect referenced hashes, delete orphaned blobs
+- [x] `garden/prune_test.go`: prune removes orphaned, keeps referenced
+- [x] `server/server.go`: Prune RPC (done in Step 12)
+- [x] `proto/sgard/v1/sgard.proto`: Prune RPC (done in Step 9)
+- [x] `client/client.go`: Prune() method (done in Step 13)
+- [x] `cmd/sgard/prune.go`: local prune; with `--remote` prunes remote instead
+- [x] `cmd/sgard/main.go`: add `--remote`, `--ssh-key` persistent flags, resolveRemote()
+- [x] `cmd/sgard/push.go`, `cmd/sgard/pull.go`
+- [x] `cmd/sgardd/main.go`: flags, garden open, auth interceptor, gRPC serve
+- [x] Verify: both binaries compile
 
 ### Step 16: Polish + Release
 
