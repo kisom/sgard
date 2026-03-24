@@ -129,6 +129,15 @@ Depends on Steps 9, 10, 11.
 - [ ] PullBlobs: stream requested blobs (64 KiB chunks)
 - [ ] `server/server_test.go`: in-process test with bufconn, push+pull between two repos
 
+### Step 12b: Directory Recursion and Mirror Command
+
+- [ ] `garden/garden.go`: `Add` recurses directories — walk all files/symlinks, add each as its own entry
+- [ ] `garden/mirror.go`: `MirrorUp(paths []string) error` — walk directory, add new files, remove entries for files gone from disk, re-hash changed
+- [ ] `garden/mirror.go`: `MirrorDown(paths []string, force bool, confirm func(string) bool) error` — restore all tracked files under path, delete anything not in manifest
+- [ ] `garden/mirror_test.go`: tests for recursive add, mirror up (detects new/removed), mirror down (cleans extras)
+- [ ] `cmd/sgard/mirror.go`: `sgard mirror up <path>`, `sgard mirror down <path> [--force]`
+- [ ] Update existing add tests for directory recursion
+
 ### Step 13: Client Library (No Auth)
 
 Depends on Step 12.
