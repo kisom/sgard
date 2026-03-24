@@ -284,6 +284,207 @@ SSH key resolution order (for initial authentication):
 3. ssh-agent (if `SSH_AUTH_SOCK` is set, uses first available key)
 4. Default paths: `~/.ssh/id_ed25519`, `~/.ssh/id_rsa`
 
+## Encryption
+
+sgard supports optional at-rest encryption for blob contents. When
+enabled, files are encrypted before being stored in the blob store and
+decrypted on restore. Encryption is per-repo — a repo is either
+encrypted or it isn't.
+
+### Key Hierarchy
+
+A two-layer key hierarchy separates the encryption key from the user's
+secret (passphrase or FIDO2 key):
+
+```
+User Secret (passphrase or FIDO2 hmac-secret)
+    │
+    ▼
+KEK (Key Encryption Key) — derived from user secret
+    │
+    ▼
+DEK (Data Encryption Key) — random, encrypts/decrypts file blobs
+```
+
+**DEK (Data Encryption Key):**
+- 256-bit random key, generated once when encryption is first enabled
+- Used with XChaCha20-Poly1305 (AEAD) to encrypt every blob
+- Never stored in plaintext — always wrapped by the KEK
+- Stored as `<repo>/dek.enc` (KEK-encrypted)
+
+**KEK (Key Encryption Key):**
+- Derived from the user's secret
+- Used only to wrap/unwrap the DEK, never to encrypt data directly
+- Never stored on disk — derived on demand
+
+This separation means changing a passphrase or adding a FIDO2 key only
+requires re-wrapping the DEK, not re-encrypting every blob.
+
+### KEK Derivation
+
+Two methods, selected at repo initialization:
+
+**Passphrase:**
+- KEK = Argon2id(passphrase, salt, time=3, memory=64MB, threads=4)
+- Salt stored at `<repo>/kek.salt` (16 random bytes)
+- Argon2id parameters stored alongside the salt for forward compatibility
+
+**FIDO2 hmac-secret:**
+- KEK = HMAC-SHA256 output from the FIDO2 authenticator
+- The authenticator computes `HMAC(device_secret, salt)` where the salt
+  is stored at `<repo>/kek.salt`
+- Requires a FIDO2 key that supports the `hmac-secret` extension
+- User touch is required to derive the KEK
+
+### Blob Encryption
+
+**Algorithm:** XChaCha20-Poly1305 (from `golang.org/x/crypto/chacha20poly1305`)
+- 24-byte nonce (random per blob), 16-byte auth tag
+- AEAD — provides both confidentiality and integrity
+- XChaCha20 variant chosen for its 24-byte nonce, which is safe to
+  generate randomly without collision risk
+
+**Encrypted blob format:**
+```
+[24-byte nonce][ciphertext + 16-byte Poly1305 tag]
+```
+
+**Encryption flow (during Add/Checkpoint):**
+1. Read file plaintext
+2. Generate random 24-byte nonce
+3. Encrypt: `ciphertext = XChaCha20-Poly1305.Seal(nonce, DEK, plaintext)`
+4. Compute SHA-256 hash of the encrypted blob (nonce + ciphertext)
+5. Store the encrypted blob in the content-addressable store
+
+**Decryption flow (during Restore/Diff):**
+1. Read encrypted blob from store
+2. Extract 24-byte nonce prefix
+3. Decrypt: `plaintext = XChaCha20-Poly1305.Open(nonce, DEK, ciphertext)`
+4. Write plaintext to disk
+
+### Hashing: Post-Encryption
+
+The manifest hash is the SHA-256 of the **ciphertext**, not the plaintext.
+
+Rationale:
+- `verify` checks blob integrity without needing the DEK
+- The hash matches what's actually stored on disk
+- The server never needs the DEK — it handles only encrypted blobs
+- `status` needs the DEK to compare against the current file (hash
+  the plaintext, encrypt it, compare encrypted hash — or keep a
+  plaintext hash in the manifest)
+
+**Manifest changes for encryption:**
+
+To support `status` without decrypting every blob, the manifest entry
+gains an optional `plaintext_hash` field:
+
+```yaml
+files:
+  - path: ~/.bashrc
+    hash: a1b2c3d4...        # SHA-256 of encrypted blob (post-encryption)
+    plaintext_hash: e5f6a7... # SHA-256 of plaintext (pre-encryption)
+    type: file
+    mode: "0644"
+    updated: "2026-03-24T..."
+```
+
+`status` hashes the current file on disk and compares against
+`plaintext_hash`. This avoids decrypting stored blobs just to check
+if a file has changed. `verify` uses `hash` (the encrypted blob hash)
+to check store integrity without the DEK.
+
+### DEK Storage
+
+The DEK is encrypted with the KEK using XChaCha20-Poly1305 and stored
+at `<repo>/dek.enc`:
+
+```
+[24-byte nonce][encrypted DEK + 16-byte tag]
+```
+
+### Multiple KEK Sources
+
+A repo can have multiple KEK sources (e.g., both a passphrase and a
+FIDO2 key). Each source wraps the same DEK independently:
+
+```
+<repo>/dek.enc.passphrase    # DEK wrapped by passphrase-derived KEK
+<repo>/dek.enc.fido2         # DEK wrapped by FIDO2-derived KEK
+```
+
+Either source can unwrap the DEK. Adding a new source requires the DEK
+(unlocked by any existing source) to create the new wrapped copy.
+
+### Repo Configuration
+
+Encryption config stored at `<repo>/encryption.yaml`:
+
+```yaml
+enabled: true
+algorithm: xchacha20-poly1305
+kek_sources:
+  - type: passphrase
+    argon2_time: 3
+    argon2_memory: 65536  # KiB
+    argon2_threads: 4
+    salt_file: kek.salt
+    dek_file: dek.enc.passphrase
+  - type: fido2
+    salt_file: kek.salt
+    dek_file: dek.enc.fido2
+```
+
+### CLI Integration
+
+**Enabling encryption:**
+```sh
+sgard init --encrypt              # prompts for passphrase
+sgard init --encrypt --fido2      # uses FIDO2 key
+```
+
+**Adding a KEK source to an existing encrypted repo:**
+```sh
+sgard encrypt add-passphrase      # add passphrase (requires existing unlock)
+sgard encrypt add-fido2           # add FIDO2 key (requires existing unlock)
+```
+
+**Changing a passphrase:**
+```sh
+sgard encrypt change-passphrase   # prompts for old and new
+```
+
+**Unlocking:**
+Operations that need the DEK (add, checkpoint, restore, diff, mirror)
+prompt for the passphrase or FIDO2 touch automatically. The unlocked
+DEK can be cached in memory for the duration of the command.
+
+There is no long-lived unlock state — each command invocation that needs
+the DEK obtains it fresh. This is intentional: dotfile operations are
+infrequent, and caching the DEK across invocations would require a
+daemon or on-disk secret, both of which expand the attack surface.
+
+### Security Properties
+
+- **At-rest confidentiality:** Blobs are encrypted. The manifest
+  contains paths and hashes but not file contents.
+- **Server ignorance:** The server never has the DEK. Push/pull
+  transfers encrypted blobs. The server cannot read file contents.
+- **Key rotation:** Changing the passphrase re-wraps the DEK without
+  re-encrypting blobs.
+- **Compromise recovery:** If the DEK is compromised, all blobs must
+  be re-encrypted (not just re-wrapped). This is an explicit `sgard
+  encrypt rotate-dek` operation.
+- **No plaintext leaks:** `diff` decrypts in memory, never writes
+  plaintext blobs to disk.
+
+### Non-Encrypted Repos
+
+Encryption is optional. Repos without encryption work exactly as before
+— no `encryption.yaml`, no DEK, blobs stored as plaintext. The `hash`
+field in the manifest is the SHA-256 of the plaintext (same as current
+behavior). The `plaintext_hash` field is omitted.
+
 ## Go Package Structure
 
 ```
