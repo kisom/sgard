@@ -14,15 +14,35 @@ message ManifestEntry {
   string mode                        = 4;
   string target                      = 5;
   google.protobuf.Timestamp updated  = 6;
+  string plaintext_hash              = 7; // SHA-256 of plaintext (encrypted entries only)
+  bool   encrypted                   = 8;
+}
+
+// KekSlot describes a single KEK source for unwrapping the DEK.
+message KekSlot {
+  string type           = 1; // "passphrase" or "fido2"
+  int32  argon2_time    = 2;
+  int32  argon2_memory  = 3; // KiB
+  int32  argon2_threads = 4;
+  string credential_id  = 5; // base64, fido2 only
+  string salt           = 6; // base64
+  string wrapped_dek    = 7; // base64
+}
+
+// Encryption holds the encryption configuration.
+message Encryption {
+  string                    algorithm = 1;
+  map<string, KekSlot>      kek_slots = 2;
 }
 
 // Manifest mirrors the top-level manifest.Manifest.
 message Manifest {
-  int32                       version = 1;
-  google.protobuf.Timestamp   created = 2;
-  google.protobuf.Timestamp   updated = 3;
-  string                      message = 4;
-  repeated ManifestEntry      files   = 5;
+  int32                       version    = 1;
+  google.protobuf.Timestamp   created    = 2;
+  google.protobuf.Timestamp   updated    = 3;
+  string                      message    = 4;
+  repeated ManifestEntry      files      = 5;
+  Encryption                  encryption = 6;
 }
 
 // BlobChunk is one piece of a streamed blob. The first chunk for a given

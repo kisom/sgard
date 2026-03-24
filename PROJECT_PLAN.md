@@ -206,15 +206,12 @@ Depends on Step 17.
 
 Depends on Steps 17, 18.
 
-- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt init [--fido2]` — creates DEK + passphrase slot (+ FIDO2 slot if --fido2)
-- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt add-fido2 [--label]` — adds FIDO2 slot
-- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt remove-slot <name>` — removes a slot (refuse if it's the last one)
-- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt list-slots` — print slot names and types
-- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt change-passphrase` — re-wrap DEK with new passphrase
-- [ ] `cmd/sgard/add.go`: add `--encrypt` flag
-- [ ] Update proto: add `encrypted`, `plaintext_hash` to ManifestEntry; add encryption section to Manifest message
-- [ ] Update `server/convert.go`: handle new fields in proto conversion
-- [ ] Verify: both binaries compile, `go test ./...`
+- [x] `cmd/sgard/encrypt.go`: `sgard encrypt init [--fido2]`, `add-fido2 [--label]`, `remove-slot`, `list-slots`, `change-passphrase`
+- [x] `garden/encrypt.go`: `RemoveSlot`, `ListSlots`, `ChangePassphrase` methods
+- [x] `cmd/sgard/add.go`: add `--encrypt` flag with passphrase prompt
+- [x] Update proto: add `encrypted`, `plaintext_hash` to ManifestEntry; add KekSlot, Encryption messages, encryption field on Manifest
+- [x] Update `server/convert.go`: full encryption section conversion (Encryption, KekSlot)
+- [x] Verify: both binaries compile, `go test ./...`, lint clean
 
 ### Step 20: Encryption Polish + Release
 

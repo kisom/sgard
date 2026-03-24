@@ -71,7 +71,7 @@ func (x PushManifestResponse_Decision) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PushManifestResponse_Decision.Descriptor instead.
 func (PushManifestResponse_Decision) EnumDescriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{4, 0}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{6, 0}
 }
 
 // ManifestEntry mirrors manifest.Entry from the YAML model.
@@ -83,6 +83,8 @@ type ManifestEntry struct {
 	Mode          string                 `protobuf:"bytes,4,opt,name=mode,proto3" json:"mode,omitempty"`
 	Target        string                 `protobuf:"bytes,5,opt,name=target,proto3" json:"target,omitempty"`
 	Updated       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated,proto3" json:"updated,omitempty"`
+	PlaintextHash string                 `protobuf:"bytes,7,opt,name=plaintext_hash,json=plaintextHash,proto3" json:"plaintext_hash,omitempty"` // SHA-256 of plaintext (encrypted entries only)
+	Encrypted     bool                   `protobuf:"varint,8,opt,name=encrypted,proto3" json:"encrypted,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -159,6 +161,166 @@ func (x *ManifestEntry) GetUpdated() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ManifestEntry) GetPlaintextHash() string {
+	if x != nil {
+		return x.PlaintextHash
+	}
+	return ""
+}
+
+func (x *ManifestEntry) GetEncrypted() bool {
+	if x != nil {
+		return x.Encrypted
+	}
+	return false
+}
+
+// KekSlot describes a single KEK source for unwrapping the DEK.
+type KekSlot struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"` // "passphrase" or "fido2"
+	Argon2Time    int32                  `protobuf:"varint,2,opt,name=argon2_time,json=argon2Time,proto3" json:"argon2_time,omitempty"`
+	Argon2Memory  int32                  `protobuf:"varint,3,opt,name=argon2_memory,json=argon2Memory,proto3" json:"argon2_memory,omitempty"` // KiB
+	Argon2Threads int32                  `protobuf:"varint,4,opt,name=argon2_threads,json=argon2Threads,proto3" json:"argon2_threads,omitempty"`
+	CredentialId  string                 `protobuf:"bytes,5,opt,name=credential_id,json=credentialId,proto3" json:"credential_id,omitempty"` // base64, fido2 only
+	Salt          string                 `protobuf:"bytes,6,opt,name=salt,proto3" json:"salt,omitempty"`                                     // base64
+	WrappedDek    string                 `protobuf:"bytes,7,opt,name=wrapped_dek,json=wrappedDek,proto3" json:"wrapped_dek,omitempty"`       // base64
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KekSlot) Reset() {
+	*x = KekSlot{}
+	mi := &file_sgard_v1_sgard_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KekSlot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KekSlot) ProtoMessage() {}
+
+func (x *KekSlot) ProtoReflect() protoreflect.Message {
+	mi := &file_sgard_v1_sgard_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KekSlot.ProtoReflect.Descriptor instead.
+func (*KekSlot) Descriptor() ([]byte, []int) {
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *KekSlot) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *KekSlot) GetArgon2Time() int32 {
+	if x != nil {
+		return x.Argon2Time
+	}
+	return 0
+}
+
+func (x *KekSlot) GetArgon2Memory() int32 {
+	if x != nil {
+		return x.Argon2Memory
+	}
+	return 0
+}
+
+func (x *KekSlot) GetArgon2Threads() int32 {
+	if x != nil {
+		return x.Argon2Threads
+	}
+	return 0
+}
+
+func (x *KekSlot) GetCredentialId() string {
+	if x != nil {
+		return x.CredentialId
+	}
+	return ""
+}
+
+func (x *KekSlot) GetSalt() string {
+	if x != nil {
+		return x.Salt
+	}
+	return ""
+}
+
+func (x *KekSlot) GetWrappedDek() string {
+	if x != nil {
+		return x.WrappedDek
+	}
+	return ""
+}
+
+// Encryption holds the encryption configuration.
+type Encryption struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Algorithm     string                 `protobuf:"bytes,1,opt,name=algorithm,proto3" json:"algorithm,omitempty"`
+	KekSlots      map[string]*KekSlot    `protobuf:"bytes,2,rep,name=kek_slots,json=kekSlots,proto3" json:"kek_slots,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Encryption) Reset() {
+	*x = Encryption{}
+	mi := &file_sgard_v1_sgard_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Encryption) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Encryption) ProtoMessage() {}
+
+func (x *Encryption) ProtoReflect() protoreflect.Message {
+	mi := &file_sgard_v1_sgard_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Encryption.ProtoReflect.Descriptor instead.
+func (*Encryption) Descriptor() ([]byte, []int) {
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Encryption) GetAlgorithm() string {
+	if x != nil {
+		return x.Algorithm
+	}
+	return ""
+}
+
+func (x *Encryption) GetKekSlots() map[string]*KekSlot {
+	if x != nil {
+		return x.KekSlots
+	}
+	return nil
+}
+
 // Manifest mirrors the top-level manifest.Manifest.
 type Manifest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -167,13 +329,14 @@ type Manifest struct {
 	Updated       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=updated,proto3" json:"updated,omitempty"`
 	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
 	Files         []*ManifestEntry       `protobuf:"bytes,5,rep,name=files,proto3" json:"files,omitempty"`
+	Encryption    *Encryption            `protobuf:"bytes,6,opt,name=encryption,proto3" json:"encryption,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Manifest) Reset() {
 	*x = Manifest{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[1]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -185,7 +348,7 @@ func (x *Manifest) String() string {
 func (*Manifest) ProtoMessage() {}
 
 func (x *Manifest) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[1]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -198,7 +361,7 @@ func (x *Manifest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Manifest.ProtoReflect.Descriptor instead.
 func (*Manifest) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{1}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Manifest) GetVersion() int32 {
@@ -236,6 +399,13 @@ func (x *Manifest) GetFiles() []*ManifestEntry {
 	return nil
 }
 
+func (x *Manifest) GetEncryption() *Encryption {
+	if x != nil {
+		return x.Encryption
+	}
+	return nil
+}
+
 // BlobChunk is one piece of a streamed blob. The first chunk for a given
 // hash carries the hash field; subsequent chunks omit it.
 type BlobChunk struct {
@@ -248,7 +418,7 @@ type BlobChunk struct {
 
 func (x *BlobChunk) Reset() {
 	*x = BlobChunk{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[2]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -260,7 +430,7 @@ func (x *BlobChunk) String() string {
 func (*BlobChunk) ProtoMessage() {}
 
 func (x *BlobChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[2]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -273,7 +443,7 @@ func (x *BlobChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlobChunk.ProtoReflect.Descriptor instead.
 func (*BlobChunk) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{2}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *BlobChunk) GetHash() string {
@@ -299,7 +469,7 @@ type PushManifestRequest struct {
 
 func (x *PushManifestRequest) Reset() {
 	*x = PushManifestRequest{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[3]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -311,7 +481,7 @@ func (x *PushManifestRequest) String() string {
 func (*PushManifestRequest) ProtoMessage() {}
 
 func (x *PushManifestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[3]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,7 +494,7 @@ func (x *PushManifestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushManifestRequest.ProtoReflect.Descriptor instead.
 func (*PushManifestRequest) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{3}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PushManifestRequest) GetManifest() *Manifest {
@@ -345,7 +515,7 @@ type PushManifestResponse struct {
 
 func (x *PushManifestResponse) Reset() {
 	*x = PushManifestResponse{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[4]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -357,7 +527,7 @@ func (x *PushManifestResponse) String() string {
 func (*PushManifestResponse) ProtoMessage() {}
 
 func (x *PushManifestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[4]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -370,7 +540,7 @@ func (x *PushManifestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushManifestResponse.ProtoReflect.Descriptor instead.
 func (*PushManifestResponse) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{4}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PushManifestResponse) GetDecision() PushManifestResponse_Decision {
@@ -403,7 +573,7 @@ type PushBlobsRequest struct {
 
 func (x *PushBlobsRequest) Reset() {
 	*x = PushBlobsRequest{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[5]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -415,7 +585,7 @@ func (x *PushBlobsRequest) String() string {
 func (*PushBlobsRequest) ProtoMessage() {}
 
 func (x *PushBlobsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[5]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -428,7 +598,7 @@ func (x *PushBlobsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushBlobsRequest.ProtoReflect.Descriptor instead.
 func (*PushBlobsRequest) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{5}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *PushBlobsRequest) GetChunk() *BlobChunk {
@@ -447,7 +617,7 @@ type PushBlobsResponse struct {
 
 func (x *PushBlobsResponse) Reset() {
 	*x = PushBlobsResponse{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[6]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -459,7 +629,7 @@ func (x *PushBlobsResponse) String() string {
 func (*PushBlobsResponse) ProtoMessage() {}
 
 func (x *PushBlobsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[6]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -472,7 +642,7 @@ func (x *PushBlobsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushBlobsResponse.ProtoReflect.Descriptor instead.
 func (*PushBlobsResponse) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{6}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PushBlobsResponse) GetBlobsReceived() int32 {
@@ -490,7 +660,7 @@ type PullManifestRequest struct {
 
 func (x *PullManifestRequest) Reset() {
 	*x = PullManifestRequest{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[7]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -502,7 +672,7 @@ func (x *PullManifestRequest) String() string {
 func (*PullManifestRequest) ProtoMessage() {}
 
 func (x *PullManifestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[7]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -515,7 +685,7 @@ func (x *PullManifestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullManifestRequest.ProtoReflect.Descriptor instead.
 func (*PullManifestRequest) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{7}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{9}
 }
 
 type PullManifestResponse struct {
@@ -527,7 +697,7 @@ type PullManifestResponse struct {
 
 func (x *PullManifestResponse) Reset() {
 	*x = PullManifestResponse{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[8]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -539,7 +709,7 @@ func (x *PullManifestResponse) String() string {
 func (*PullManifestResponse) ProtoMessage() {}
 
 func (x *PullManifestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[8]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -552,7 +722,7 @@ func (x *PullManifestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullManifestResponse.ProtoReflect.Descriptor instead.
 func (*PullManifestResponse) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{8}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *PullManifestResponse) GetManifest() *Manifest {
@@ -571,7 +741,7 @@ type PullBlobsRequest struct {
 
 func (x *PullBlobsRequest) Reset() {
 	*x = PullBlobsRequest{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[9]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -583,7 +753,7 @@ func (x *PullBlobsRequest) String() string {
 func (*PullBlobsRequest) ProtoMessage() {}
 
 func (x *PullBlobsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[9]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -596,7 +766,7 @@ func (x *PullBlobsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullBlobsRequest.ProtoReflect.Descriptor instead.
 func (*PullBlobsRequest) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{9}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *PullBlobsRequest) GetHashes() []string {
@@ -615,7 +785,7 @@ type PullBlobsResponse struct {
 
 func (x *PullBlobsResponse) Reset() {
 	*x = PullBlobsResponse{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[10]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -627,7 +797,7 @@ func (x *PullBlobsResponse) String() string {
 func (*PullBlobsResponse) ProtoMessage() {}
 
 func (x *PullBlobsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[10]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -640,7 +810,7 @@ func (x *PullBlobsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullBlobsResponse.ProtoReflect.Descriptor instead.
 func (*PullBlobsResponse) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{10}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *PullBlobsResponse) GetChunk() *BlobChunk {
@@ -658,7 +828,7 @@ type PruneRequest struct {
 
 func (x *PruneRequest) Reset() {
 	*x = PruneRequest{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[11]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -670,7 +840,7 @@ func (x *PruneRequest) String() string {
 func (*PruneRequest) ProtoMessage() {}
 
 func (x *PruneRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[11]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -683,7 +853,7 @@ func (x *PruneRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PruneRequest.ProtoReflect.Descriptor instead.
 func (*PruneRequest) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{11}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{13}
 }
 
 type PruneResponse struct {
@@ -695,7 +865,7 @@ type PruneResponse struct {
 
 func (x *PruneResponse) Reset() {
 	*x = PruneResponse{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[12]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -707,7 +877,7 @@ func (x *PruneResponse) String() string {
 func (*PruneResponse) ProtoMessage() {}
 
 func (x *PruneResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[12]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -720,7 +890,7 @@ func (x *PruneResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PruneResponse.ProtoReflect.Descriptor instead.
 func (*PruneResponse) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{12}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *PruneResponse) GetBlobsRemoved() int32 {
@@ -742,7 +912,7 @@ type AuthenticateRequest struct {
 
 func (x *AuthenticateRequest) Reset() {
 	*x = AuthenticateRequest{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[13]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -754,7 +924,7 @@ func (x *AuthenticateRequest) String() string {
 func (*AuthenticateRequest) ProtoMessage() {}
 
 func (x *AuthenticateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[13]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -767,7 +937,7 @@ func (x *AuthenticateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticateRequest.ProtoReflect.Descriptor instead.
 func (*AuthenticateRequest) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{13}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AuthenticateRequest) GetNonce() []byte {
@@ -807,7 +977,7 @@ type AuthenticateResponse struct {
 
 func (x *AuthenticateResponse) Reset() {
 	*x = AuthenticateResponse{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[14]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -819,7 +989,7 @@ func (x *AuthenticateResponse) String() string {
 func (*AuthenticateResponse) ProtoMessage() {}
 
 func (x *AuthenticateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[14]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -832,7 +1002,7 @@ func (x *AuthenticateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticateResponse.ProtoReflect.Descriptor instead.
 func (*AuthenticateResponse) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{14}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *AuthenticateResponse) GetToken() string {
@@ -855,7 +1025,7 @@ type ReauthChallenge struct {
 
 func (x *ReauthChallenge) Reset() {
 	*x = ReauthChallenge{}
-	mi := &file_sgard_v1_sgard_proto_msgTypes[15]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -867,7 +1037,7 @@ func (x *ReauthChallenge) String() string {
 func (*ReauthChallenge) ProtoMessage() {}
 
 func (x *ReauthChallenge) ProtoReflect() protoreflect.Message {
-	mi := &file_sgard_v1_sgard_proto_msgTypes[15]
+	mi := &file_sgard_v1_sgard_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -880,7 +1050,7 @@ func (x *ReauthChallenge) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReauthChallenge.ProtoReflect.Descriptor instead.
 func (*ReauthChallenge) Descriptor() ([]byte, []int) {
-	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{15}
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ReauthChallenge) GetNonce() []byte {
@@ -901,20 +1071,42 @@ var File_sgard_v1_sgard_proto protoreflect.FileDescriptor
 
 const file_sgard_v1_sgard_proto_rawDesc = "" +
 	"\n" +
-	"\x14sgard/v1/sgard.proto\x12\bsgard.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xad\x01\n" +
+	"\x14sgard/v1/sgard.proto\x12\bsgard.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf2\x01\n" +
 	"\rManifestEntry\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12\x12\n" +
 	"\x04mode\x18\x04 \x01(\tR\x04mode\x12\x16\n" +
 	"\x06target\x18\x05 \x01(\tR\x06target\x124\n" +
-	"\aupdated\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\aupdated\"\xd9\x01\n" +
+	"\aupdated\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\aupdated\x12%\n" +
+	"\x0eplaintext_hash\x18\a \x01(\tR\rplaintextHash\x12\x1c\n" +
+	"\tencrypted\x18\b \x01(\bR\tencrypted\"\xe4\x01\n" +
+	"\aKekSlot\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1f\n" +
+	"\vargon2_time\x18\x02 \x01(\x05R\n" +
+	"argon2Time\x12#\n" +
+	"\rargon2_memory\x18\x03 \x01(\x05R\fargon2Memory\x12%\n" +
+	"\x0eargon2_threads\x18\x04 \x01(\x05R\rargon2Threads\x12#\n" +
+	"\rcredential_id\x18\x05 \x01(\tR\fcredentialId\x12\x12\n" +
+	"\x04salt\x18\x06 \x01(\tR\x04salt\x12\x1f\n" +
+	"\vwrapped_dek\x18\a \x01(\tR\n" +
+	"wrappedDek\"\xbb\x01\n" +
+	"\n" +
+	"Encryption\x12\x1c\n" +
+	"\talgorithm\x18\x01 \x01(\tR\talgorithm\x12?\n" +
+	"\tkek_slots\x18\x02 \x03(\v2\".sgard.v1.Encryption.KekSlotsEntryR\bkekSlots\x1aN\n" +
+	"\rKekSlotsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12'\n" +
+	"\x05value\x18\x02 \x01(\v2\x11.sgard.v1.KekSlotR\x05value:\x028\x01\"\x8f\x02\n" +
 	"\bManifest\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x05R\aversion\x124\n" +
 	"\acreated\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x124\n" +
 	"\aupdated\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\aupdated\x12\x18\n" +
 	"\amessage\x18\x04 \x01(\tR\amessage\x12-\n" +
-	"\x05files\x18\x05 \x03(\v2\x17.sgard.v1.ManifestEntryR\x05files\"3\n" +
+	"\x05files\x18\x05 \x03(\v2\x17.sgard.v1.ManifestEntryR\x05files\x124\n" +
+	"\n" +
+	"encryption\x18\x06 \x01(\v2\x14.sgard.v1.EncryptionR\n" +
+	"encryption\"3\n" +
 	"\tBlobChunk\x12\x12\n" +
 	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\fR\x04data\"E\n" +
@@ -977,55 +1169,61 @@ func file_sgard_v1_sgard_proto_rawDescGZIP() []byte {
 }
 
 var file_sgard_v1_sgard_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_sgard_v1_sgard_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_sgard_v1_sgard_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_sgard_v1_sgard_proto_goTypes = []any{
 	(PushManifestResponse_Decision)(0), // 0: sgard.v1.PushManifestResponse.Decision
 	(*ManifestEntry)(nil),              // 1: sgard.v1.ManifestEntry
-	(*Manifest)(nil),                   // 2: sgard.v1.Manifest
-	(*BlobChunk)(nil),                  // 3: sgard.v1.BlobChunk
-	(*PushManifestRequest)(nil),        // 4: sgard.v1.PushManifestRequest
-	(*PushManifestResponse)(nil),       // 5: sgard.v1.PushManifestResponse
-	(*PushBlobsRequest)(nil),           // 6: sgard.v1.PushBlobsRequest
-	(*PushBlobsResponse)(nil),          // 7: sgard.v1.PushBlobsResponse
-	(*PullManifestRequest)(nil),        // 8: sgard.v1.PullManifestRequest
-	(*PullManifestResponse)(nil),       // 9: sgard.v1.PullManifestResponse
-	(*PullBlobsRequest)(nil),           // 10: sgard.v1.PullBlobsRequest
-	(*PullBlobsResponse)(nil),          // 11: sgard.v1.PullBlobsResponse
-	(*PruneRequest)(nil),               // 12: sgard.v1.PruneRequest
-	(*PruneResponse)(nil),              // 13: sgard.v1.PruneResponse
-	(*AuthenticateRequest)(nil),        // 14: sgard.v1.AuthenticateRequest
-	(*AuthenticateResponse)(nil),       // 15: sgard.v1.AuthenticateResponse
-	(*ReauthChallenge)(nil),            // 16: sgard.v1.ReauthChallenge
-	(*timestamppb.Timestamp)(nil),      // 17: google.protobuf.Timestamp
+	(*KekSlot)(nil),                    // 2: sgard.v1.KekSlot
+	(*Encryption)(nil),                 // 3: sgard.v1.Encryption
+	(*Manifest)(nil),                   // 4: sgard.v1.Manifest
+	(*BlobChunk)(nil),                  // 5: sgard.v1.BlobChunk
+	(*PushManifestRequest)(nil),        // 6: sgard.v1.PushManifestRequest
+	(*PushManifestResponse)(nil),       // 7: sgard.v1.PushManifestResponse
+	(*PushBlobsRequest)(nil),           // 8: sgard.v1.PushBlobsRequest
+	(*PushBlobsResponse)(nil),          // 9: sgard.v1.PushBlobsResponse
+	(*PullManifestRequest)(nil),        // 10: sgard.v1.PullManifestRequest
+	(*PullManifestResponse)(nil),       // 11: sgard.v1.PullManifestResponse
+	(*PullBlobsRequest)(nil),           // 12: sgard.v1.PullBlobsRequest
+	(*PullBlobsResponse)(nil),          // 13: sgard.v1.PullBlobsResponse
+	(*PruneRequest)(nil),               // 14: sgard.v1.PruneRequest
+	(*PruneResponse)(nil),              // 15: sgard.v1.PruneResponse
+	(*AuthenticateRequest)(nil),        // 16: sgard.v1.AuthenticateRequest
+	(*AuthenticateResponse)(nil),       // 17: sgard.v1.AuthenticateResponse
+	(*ReauthChallenge)(nil),            // 18: sgard.v1.ReauthChallenge
+	nil,                                // 19: sgard.v1.Encryption.KekSlotsEntry
+	(*timestamppb.Timestamp)(nil),      // 20: google.protobuf.Timestamp
 }
 var file_sgard_v1_sgard_proto_depIdxs = []int32{
-	17, // 0: sgard.v1.ManifestEntry.updated:type_name -> google.protobuf.Timestamp
-	17, // 1: sgard.v1.Manifest.created:type_name -> google.protobuf.Timestamp
-	17, // 2: sgard.v1.Manifest.updated:type_name -> google.protobuf.Timestamp
-	1,  // 3: sgard.v1.Manifest.files:type_name -> sgard.v1.ManifestEntry
-	2,  // 4: sgard.v1.PushManifestRequest.manifest:type_name -> sgard.v1.Manifest
-	0,  // 5: sgard.v1.PushManifestResponse.decision:type_name -> sgard.v1.PushManifestResponse.Decision
-	17, // 6: sgard.v1.PushManifestResponse.server_updated:type_name -> google.protobuf.Timestamp
-	3,  // 7: sgard.v1.PushBlobsRequest.chunk:type_name -> sgard.v1.BlobChunk
-	2,  // 8: sgard.v1.PullManifestResponse.manifest:type_name -> sgard.v1.Manifest
-	3,  // 9: sgard.v1.PullBlobsResponse.chunk:type_name -> sgard.v1.BlobChunk
-	14, // 10: sgard.v1.GardenSync.Authenticate:input_type -> sgard.v1.AuthenticateRequest
-	4,  // 11: sgard.v1.GardenSync.PushManifest:input_type -> sgard.v1.PushManifestRequest
-	6,  // 12: sgard.v1.GardenSync.PushBlobs:input_type -> sgard.v1.PushBlobsRequest
-	8,  // 13: sgard.v1.GardenSync.PullManifest:input_type -> sgard.v1.PullManifestRequest
-	10, // 14: sgard.v1.GardenSync.PullBlobs:input_type -> sgard.v1.PullBlobsRequest
-	12, // 15: sgard.v1.GardenSync.Prune:input_type -> sgard.v1.PruneRequest
-	15, // 16: sgard.v1.GardenSync.Authenticate:output_type -> sgard.v1.AuthenticateResponse
-	5,  // 17: sgard.v1.GardenSync.PushManifest:output_type -> sgard.v1.PushManifestResponse
-	7,  // 18: sgard.v1.GardenSync.PushBlobs:output_type -> sgard.v1.PushBlobsResponse
-	9,  // 19: sgard.v1.GardenSync.PullManifest:output_type -> sgard.v1.PullManifestResponse
-	11, // 20: sgard.v1.GardenSync.PullBlobs:output_type -> sgard.v1.PullBlobsResponse
-	13, // 21: sgard.v1.GardenSync.Prune:output_type -> sgard.v1.PruneResponse
-	16, // [16:22] is the sub-list for method output_type
-	10, // [10:16] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	20, // 0: sgard.v1.ManifestEntry.updated:type_name -> google.protobuf.Timestamp
+	19, // 1: sgard.v1.Encryption.kek_slots:type_name -> sgard.v1.Encryption.KekSlotsEntry
+	20, // 2: sgard.v1.Manifest.created:type_name -> google.protobuf.Timestamp
+	20, // 3: sgard.v1.Manifest.updated:type_name -> google.protobuf.Timestamp
+	1,  // 4: sgard.v1.Manifest.files:type_name -> sgard.v1.ManifestEntry
+	3,  // 5: sgard.v1.Manifest.encryption:type_name -> sgard.v1.Encryption
+	4,  // 6: sgard.v1.PushManifestRequest.manifest:type_name -> sgard.v1.Manifest
+	0,  // 7: sgard.v1.PushManifestResponse.decision:type_name -> sgard.v1.PushManifestResponse.Decision
+	20, // 8: sgard.v1.PushManifestResponse.server_updated:type_name -> google.protobuf.Timestamp
+	5,  // 9: sgard.v1.PushBlobsRequest.chunk:type_name -> sgard.v1.BlobChunk
+	4,  // 10: sgard.v1.PullManifestResponse.manifest:type_name -> sgard.v1.Manifest
+	5,  // 11: sgard.v1.PullBlobsResponse.chunk:type_name -> sgard.v1.BlobChunk
+	2,  // 12: sgard.v1.Encryption.KekSlotsEntry.value:type_name -> sgard.v1.KekSlot
+	16, // 13: sgard.v1.GardenSync.Authenticate:input_type -> sgard.v1.AuthenticateRequest
+	6,  // 14: sgard.v1.GardenSync.PushManifest:input_type -> sgard.v1.PushManifestRequest
+	8,  // 15: sgard.v1.GardenSync.PushBlobs:input_type -> sgard.v1.PushBlobsRequest
+	10, // 16: sgard.v1.GardenSync.PullManifest:input_type -> sgard.v1.PullManifestRequest
+	12, // 17: sgard.v1.GardenSync.PullBlobs:input_type -> sgard.v1.PullBlobsRequest
+	14, // 18: sgard.v1.GardenSync.Prune:input_type -> sgard.v1.PruneRequest
+	17, // 19: sgard.v1.GardenSync.Authenticate:output_type -> sgard.v1.AuthenticateResponse
+	7,  // 20: sgard.v1.GardenSync.PushManifest:output_type -> sgard.v1.PushManifestResponse
+	9,  // 21: sgard.v1.GardenSync.PushBlobs:output_type -> sgard.v1.PushBlobsResponse
+	11, // 22: sgard.v1.GardenSync.PullManifest:output_type -> sgard.v1.PullManifestResponse
+	13, // 23: sgard.v1.GardenSync.PullBlobs:output_type -> sgard.v1.PullBlobsResponse
+	15, // 24: sgard.v1.GardenSync.Prune:output_type -> sgard.v1.PruneResponse
+	19, // [19:25] is the sub-list for method output_type
+	13, // [13:19] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_sgard_v1_sgard_proto_init() }
@@ -1039,7 +1237,7 @@ func file_sgard_v1_sgard_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_sgard_v1_sgard_proto_rawDesc), len(file_sgard_v1_sgard_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   16,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

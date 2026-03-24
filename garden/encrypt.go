@@ -135,6 +135,84 @@ func (g *Garden) HasEncryption() bool {
 	return g.manifest.Encryption != nil
 }
 
+// RemoveSlot removes a KEK slot by name. Refuses to remove the last slot.
+func (g *Garden) RemoveSlot(name string) error {
+	enc := g.manifest.Encryption
+	if enc == nil {
+		return fmt.Errorf("encryption not initialized")
+	}
+
+	if _, ok := enc.KekSlots[name]; !ok {
+		return fmt.Errorf("slot %q not found", name)
+	}
+
+	if len(enc.KekSlots) <= 1 {
+		return fmt.Errorf("cannot remove the last KEK slot")
+	}
+
+	delete(enc.KekSlots, name)
+
+	if err := g.manifest.Save(g.manifestPath); err != nil {
+		return fmt.Errorf("saving manifest: %w", err)
+	}
+
+	return nil
+}
+
+// ListSlots returns the slot names and types.
+func (g *Garden) ListSlots() map[string]string {
+	enc := g.manifest.Encryption
+	if enc == nil {
+		return nil
+	}
+
+	result := make(map[string]string, len(enc.KekSlots))
+	for name, slot := range enc.KekSlots {
+		result[name] = slot.Type
+	}
+	return result
+}
+
+// ChangePassphrase re-wraps the DEK with a new passphrase. The DEK must
+// already be unlocked.
+func (g *Garden) ChangePassphrase(newPassphrase string) error {
+	if g.dek == nil {
+		return fmt.Errorf("DEK not unlocked")
+	}
+
+	enc := g.manifest.Encryption
+	if enc == nil {
+		return fmt.Errorf("encryption not initialized")
+	}
+
+	slot, ok := enc.KekSlots["passphrase"]
+	if !ok {
+		return fmt.Errorf("no passphrase slot to change")
+	}
+
+	// Generate new salt.
+	salt := make([]byte, saltSize)
+	if _, err := rand.Read(salt); err != nil {
+		return fmt.Errorf("generating salt: %w", err)
+	}
+
+	kek := derivePassphraseKEK(newPassphrase, salt, slot.Argon2Time, slot.Argon2Memory, slot.Argon2Threads)
+
+	wrappedDEK, err := wrapDEK(g.dek, kek)
+	if err != nil {
+		return fmt.Errorf("wrapping DEK: %w", err)
+	}
+
+	slot.Salt = base64.StdEncoding.EncodeToString(salt)
+	slot.WrappedDEK = base64.StdEncoding.EncodeToString(wrappedDEK)
+
+	if err := g.manifest.Save(g.manifestPath); err != nil {
+		return fmt.Errorf("saving manifest: %w", err)
+	}
+
+	return nil
+}
+
 // NeedsDEK reports whether any of the given entries are encrypted.
 func (g *Garden) NeedsDEK(entries []manifest.Entry) bool {
 	for _, e := range entries {
