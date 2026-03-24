@@ -4,11 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kisom/sgard/client"
 	"github.com/kisom/sgard/garden"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 var pruneCmd = &cobra.Command{
@@ -19,7 +16,7 @@ var pruneCmd = &cobra.Command{
 		addr, _ := resolveRemote()
 
 		if addr != "" {
-			return pruneRemote(addr)
+			return pruneRemote()
 		}
 		return pruneLocal()
 	},
@@ -40,24 +37,16 @@ func pruneLocal() error {
 	return nil
 }
 
-func pruneRemote(addr string) error {
-	signer, err := client.LoadSigner(sshKeyFlag)
+func pruneRemote() error {
+	ctx := context.Background()
+
+	c, cleanup, err := dialRemote(ctx)
 	if err != nil {
 		return err
 	}
+	defer cleanup()
 
-	creds := client.NewSSHCredentials(signer)
-	conn, err := grpc.NewClient(addr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithPerRPCCredentials(creds),
-	)
-	if err != nil {
-		return fmt.Errorf("connecting to %s: %w", addr, err)
-	}
-	defer func() { _ = conn.Close() }()
-
-	c := client.New(conn)
-	removed, err := c.Prune(context.Background())
+	removed, err := c.Prune(ctx)
 	if err != nil {
 		return err
 	}

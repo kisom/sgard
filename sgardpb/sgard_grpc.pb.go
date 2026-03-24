@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	GardenSync_Authenticate_FullMethodName = "/sgard.v1.GardenSync/Authenticate"
 	GardenSync_PushManifest_FullMethodName = "/sgard.v1.GardenSync/PushManifest"
 	GardenSync_PushBlobs_FullMethodName    = "/sgard.v1.GardenSync/PushBlobs"
 	GardenSync_PullManifest_FullMethodName = "/sgard.v1.GardenSync/PullManifest"
@@ -32,6 +33,8 @@ const (
 //
 // GardenSync is the sgard remote sync service.
 type GardenSyncClient interface {
+	// Authenticate exchanges an SSH-signed challenge for a JWT token.
+	Authenticate(ctx context.Context, in *AuthenticateRequest, opts ...grpc.CallOption) (*AuthenticateResponse, error)
 	// Push flow: send manifest, then stream missing blobs.
 	PushManifest(ctx context.Context, in *PushManifestRequest, opts ...grpc.CallOption) (*PushManifestResponse, error)
 	PushBlobs(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[PushBlobsRequest, PushBlobsResponse], error)
@@ -48,6 +51,16 @@ type gardenSyncClient struct {
 
 func NewGardenSyncClient(cc grpc.ClientConnInterface) GardenSyncClient {
 	return &gardenSyncClient{cc}
+}
+
+func (c *gardenSyncClient) Authenticate(ctx context.Context, in *AuthenticateRequest, opts ...grpc.CallOption) (*AuthenticateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthenticateResponse)
+	err := c.cc.Invoke(ctx, GardenSync_Authenticate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *gardenSyncClient) PushManifest(ctx context.Context, in *PushManifestRequest, opts ...grpc.CallOption) (*PushManifestResponse, error) {
@@ -118,6 +131,8 @@ func (c *gardenSyncClient) Prune(ctx context.Context, in *PruneRequest, opts ...
 //
 // GardenSync is the sgard remote sync service.
 type GardenSyncServer interface {
+	// Authenticate exchanges an SSH-signed challenge for a JWT token.
+	Authenticate(context.Context, *AuthenticateRequest) (*AuthenticateResponse, error)
 	// Push flow: send manifest, then stream missing blobs.
 	PushManifest(context.Context, *PushManifestRequest) (*PushManifestResponse, error)
 	PushBlobs(grpc.ClientStreamingServer[PushBlobsRequest, PushBlobsResponse]) error
@@ -136,6 +151,9 @@ type GardenSyncServer interface {
 // pointer dereference when methods are called.
 type UnimplementedGardenSyncServer struct{}
 
+func (UnimplementedGardenSyncServer) Authenticate(context.Context, *AuthenticateRequest) (*AuthenticateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Authenticate not implemented")
+}
 func (UnimplementedGardenSyncServer) PushManifest(context.Context, *PushManifestRequest) (*PushManifestResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PushManifest not implemented")
 }
@@ -170,6 +188,24 @@ func RegisterGardenSyncServer(s grpc.ServiceRegistrar, srv GardenSyncServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&GardenSync_ServiceDesc, srv)
+}
+
+func _GardenSync_Authenticate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthenticateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GardenSyncServer).Authenticate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GardenSync_Authenticate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GardenSyncServer).Authenticate(ctx, req.(*AuthenticateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _GardenSync_PushManifest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -251,6 +287,10 @@ var GardenSync_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "sgard.v1.GardenSync",
 	HandlerType: (*GardenSyncServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Authenticate",
+			Handler:    _GardenSync_Authenticate_Handler,
+		},
 		{
 			MethodName: "PushManifest",
 			Handler:    _GardenSync_PushManifest_Handler,

@@ -24,11 +24,25 @@ type Server struct {
 	garden          *garden.Garden
 	mu              sync.RWMutex
 	pendingManifest *manifest.Manifest
+	auth            *AuthInterceptor // nil if auth is disabled
 }
 
 // New creates a new Server backed by the given Garden.
 func New(g *garden.Garden) *Server {
 	return &Server{garden: g}
+}
+
+// NewWithAuth creates a new Server with authentication enabled.
+func NewWithAuth(g *garden.Garden, auth *AuthInterceptor) *Server {
+	return &Server{garden: g, auth: auth}
+}
+
+// Authenticate handles the auth RPC by delegating to the AuthInterceptor.
+func (s *Server) Authenticate(ctx context.Context, req *sgardpb.AuthenticateRequest) (*sgardpb.AuthenticateResponse, error) {
+	if s.auth == nil {
+		return nil, status.Error(codes.Unimplemented, "authentication not configured")
+	}
+	return s.auth.Authenticate(ctx, req)
 }
 
 // PushManifest compares the client manifest against the server manifest and

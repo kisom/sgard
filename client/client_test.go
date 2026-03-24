@@ -210,8 +210,9 @@ func TestPrune(t *testing.T) {
 	}
 }
 
-func TestAuthIntegration(t *testing.T) {
-	// Generate an ed25519 key pair.
+var testJWTKey = []byte("test-jwt-secret-key-32-bytes!!")
+
+func TestTokenAuthIntegration(t *testing.T) {
 	_, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("generating key: %v", err)
@@ -227,19 +228,18 @@ func TestAuthIntegration(t *testing.T) {
 		t.Fatalf("init server garden: %v", err)
 	}
 
-	// Set up server with auth interceptor.
-	auth := server.NewAuthInterceptorFromKeys([]ssh.PublicKey{signer.PublicKey()})
+	auth := server.NewAuthInterceptorFromKeys([]ssh.PublicKey{signer.PublicKey()}, testJWTKey)
 	lis := bufconn.Listen(bufSize)
 	srv := grpc.NewServer(
 		grpc.UnaryInterceptor(auth.UnaryInterceptor()),
 		grpc.StreamInterceptor(auth.StreamInterceptor()),
 	)
-	sgardpb.RegisterGardenSyncServer(srv, server.New(serverGarden))
+	sgardpb.RegisterGardenSyncServer(srv, server.NewWithAuth(serverGarden, auth))
 	t.Cleanup(func() { srv.Stop() })
 	go func() { _ = srv.Serve(lis) }()
 
-	// Client with SSH credentials.
-	creds := NewSSHCredentials(signer)
+	// Client with token auth + auto-renewal.
+	creds := NewTokenCredentials("")
 	conn, err := grpc.NewClient("passthrough:///bufconn",
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 			return lis.Dial()
@@ -252,16 +252,22 @@ func TestAuthIntegration(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = conn.Close() })
 
-	c := New(conn)
+	c := NewWithAuth(conn, creds, signer)
 
-	// Authenticated request should succeed.
-	_, err = c.Pull(context.Background(), serverGarden)
+	// No token yet — EnsureAuth should authenticate via SSH.
+	ctx := context.Background()
+	if err := c.EnsureAuth(ctx); err != nil {
+		t.Fatalf("EnsureAuth: %v", err)
+	}
+
+	// Now requests should work.
+	_, err = c.Pull(ctx, serverGarden)
 	if err != nil {
 		t.Fatalf("authenticated Pull should succeed: %v", err)
 	}
 }
 
-func TestAuthIntegrationRejectsUnauthenticated(t *testing.T) {
+func TestAuthRejectsUnauthenticated(t *testing.T) {
 	_, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("generating key: %v", err)
@@ -277,17 +283,17 @@ func TestAuthIntegrationRejectsUnauthenticated(t *testing.T) {
 		t.Fatalf("init server garden: %v", err)
 	}
 
-	auth := server.NewAuthInterceptorFromKeys([]ssh.PublicKey{signer.PublicKey()})
+	auth := server.NewAuthInterceptorFromKeys([]ssh.PublicKey{signer.PublicKey()}, testJWTKey)
 	lis := bufconn.Listen(bufSize)
 	srv := grpc.NewServer(
 		grpc.UnaryInterceptor(auth.UnaryInterceptor()),
 		grpc.StreamInterceptor(auth.StreamInterceptor()),
 	)
-	sgardpb.RegisterGardenSyncServer(srv, server.New(serverGarden))
+	sgardpb.RegisterGardenSyncServer(srv, server.NewWithAuth(serverGarden, auth))
 	t.Cleanup(func() { srv.Stop() })
 	go func() { _ = srv.Serve(lis) }()
 
-	// Client WITHOUT credentials.
+	// Client WITHOUT credentials — no token, no signer.
 	conn, err := grpc.NewClient("passthrough:///bufconn",
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 			return lis.Dial()

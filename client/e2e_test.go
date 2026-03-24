@@ -39,19 +39,20 @@ func TestE2EPushPullCycle(t *testing.T) {
 		t.Fatalf("init server: %v", err)
 	}
 
-	auth := server.NewAuthInterceptorFromKeys([]ssh.PublicKey{signer.PublicKey()})
+	jwtKey := []byte("e2e-test-jwt-secret-key-32bytes!")
+	auth := server.NewAuthInterceptorFromKeys([]ssh.PublicKey{signer.PublicKey()}, jwtKey)
 	lis := bufconn.Listen(bufSize)
 	srv := grpc.NewServer(
 		grpc.UnaryInterceptor(auth.UnaryInterceptor()),
 		grpc.StreamInterceptor(auth.StreamInterceptor()),
 	)
-	sgardpb.RegisterGardenSyncServer(srv, server.New(serverGarden))
+	sgardpb.RegisterGardenSyncServer(srv, server.NewWithAuth(serverGarden, auth))
 	t.Cleanup(func() { srv.Stop() })
 	go func() { _ = srv.Serve(lis) }()
 
 	dial := func(t *testing.T) *Client {
 		t.Helper()
-		creds := NewSSHCredentials(signer)
+		creds := NewTokenCredentials("")
 		conn, err := grpc.NewClient("passthrough:///bufconn",
 			grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 				return lis.Dial()
@@ -63,7 +64,11 @@ func TestE2EPushPullCycle(t *testing.T) {
 			t.Fatalf("dial: %v", err)
 		}
 		t.Cleanup(func() { _ = conn.Close() })
-		return New(conn)
+		c := NewWithAuth(conn, creds, signer)
+		if err := c.EnsureAuth(context.Background()); err != nil {
+			t.Fatalf("EnsureAuth: %v", err)
+		}
+		return c
 	}
 
 	ctx := context.Background()

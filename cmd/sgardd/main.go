@@ -29,9 +29,10 @@ var rootCmd = &cobra.Command{
 		}
 
 		var opts []grpc.ServerOption
+		var srvInstance *server.Server
 
 		if authKeysPath != "" {
-			auth, err := server.NewAuthInterceptor(authKeysPath)
+			auth, err := server.NewAuthInterceptor(authKeysPath, repoPath)
 			if err != nil {
 				return fmt.Errorf("loading authorized keys: %w", err)
 			}
@@ -39,13 +40,15 @@ var rootCmd = &cobra.Command{
 				grpc.UnaryInterceptor(auth.UnaryInterceptor()),
 				grpc.StreamInterceptor(auth.StreamInterceptor()),
 			)
+			srvInstance = server.NewWithAuth(g, auth)
 			fmt.Printf("Auth enabled: %s\n", authKeysPath)
 		} else {
+			srvInstance = server.New(g)
 			fmt.Println("WARNING: no --authorized-keys specified, running without authentication")
 		}
 
 		srv := grpc.NewServer(opts...)
-		sgardpb.RegisterGardenSyncServer(srv, server.New(g))
+		sgardpb.RegisterGardenSyncServer(srv, srvInstance)
 
 		lis, err := net.Listen("tcp", listenAddr)
 		if err != nil {

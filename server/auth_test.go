@@ -4,14 +4,17 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	"encoding/base64"
-	"strconv"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/kisom/sgard/sgardpb"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc/metadata"
 )
+
+var testJWTKey = []byte("test-jwt-secret-key-32-bytes!!")
 
 func generateTestKey(t *testing.T) (ssh.Signer, ssh.PublicKey) {
 	t.Helper()
@@ -26,94 +29,118 @@ func generateTestKey(t *testing.T) (ssh.Signer, ssh.PublicKey) {
 	return signer, signer.PublicKey()
 }
 
-func signedContext(t *testing.T, signer ssh.Signer) context.Context {
-	t.Helper()
+func TestAuthenticateAndVerifyToken(t *testing.T) {
+	signer, pubkey := generateTestKey(t)
+	auth := NewAuthInterceptorFromKeys([]ssh.PublicKey{pubkey}, testJWTKey)
 
-	nonce, err := GenerateNonce()
-	if err != nil {
-		t.Fatalf("generating nonce: %v", err)
-	}
+	// Generate a signed challenge.
+	nonce, _ := GenerateNonce()
 	tsUnix := time.Now().Unix()
 	payload := buildPayload(nonce, tsUnix)
-
 	sig, err := signer.Sign(rand.Reader, payload)
 	if err != nil {
 		t.Fatalf("signing: %v", err)
 	}
 
-	pubkeyStr := string(ssh.MarshalAuthorizedKey(signer.PublicKey()))
+	pubkeyStr := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(signer.PublicKey())))
 
-	md := metadata.New(map[string]string{
-		metaNonce:     base64.StdEncoding.EncodeToString(nonce),
-		metaTimestamp: strconv.FormatInt(tsUnix, 10),
-		metaSignature: base64.StdEncoding.EncodeToString(ssh.Marshal(sig)),
-		metaPubkey:    pubkeyStr,
+	// Call Authenticate.
+	resp, err := auth.Authenticate(context.Background(), &sgardpb.AuthenticateRequest{
+		Nonce:     nonce,
+		Timestamp: tsUnix,
+		Signature: ssh.Marshal(sig),
+		PublicKey: pubkeyStr,
 	})
-	return metadata.NewIncomingContext(context.Background(), md)
-}
+	if err != nil {
+		t.Fatalf("Authenticate: %v", err)
+	}
+	if resp.Token == "" {
+		t.Fatal("expected non-empty token")
+	}
 
-func TestAuthVerifyValid(t *testing.T) {
-	signer, pubkey := generateTestKey(t)
-	interceptor := NewAuthInterceptorFromKeys([]ssh.PublicKey{pubkey})
-
-	ctx := signedContext(t, signer)
-	if err := interceptor.verify(ctx); err != nil {
-		t.Fatalf("verify should succeed: %v", err)
+	// Use the token in metadata.
+	md := metadata.New(map[string]string{metaToken: resp.Token})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	if err := auth.verifyToken(ctx); err != nil {
+		t.Fatalf("verifyToken should accept valid token: %v", err)
 	}
 }
 
-func TestAuthRejectUnauthenticated(t *testing.T) {
+func TestRejectMissingToken(t *testing.T) {
 	_, pubkey := generateTestKey(t)
-	interceptor := NewAuthInterceptorFromKeys([]ssh.PublicKey{pubkey})
+	auth := NewAuthInterceptorFromKeys([]ssh.PublicKey{pubkey}, testJWTKey)
 
 	// No metadata at all.
-	ctx := context.Background()
-	if err := interceptor.verify(ctx); err == nil {
-		t.Fatal("verify should reject missing metadata")
+	if err := auth.verifyToken(context.Background()); err == nil {
+		t.Fatal("should reject missing metadata")
+	}
+
+	// Empty metadata.
+	md := metadata.New(nil)
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	if err := auth.verifyToken(ctx); err == nil {
+		t.Fatal("should reject missing token")
 	}
 }
 
-func TestAuthRejectUnauthorizedKey(t *testing.T) {
+func TestRejectUnauthorizedKey(t *testing.T) {
 	signer1, _ := generateTestKey(t)
 	_, pubkey2 := generateTestKey(t)
 
-	// Interceptor knows key2 but request is signed by key1.
-	interceptor := NewAuthInterceptorFromKeys([]ssh.PublicKey{pubkey2})
+	// Auth only knows pubkey2, but we authenticate with signer1.
+	auth := NewAuthInterceptorFromKeys([]ssh.PublicKey{pubkey2}, testJWTKey)
 
-	ctx := signedContext(t, signer1)
-	if err := interceptor.verify(ctx); err == nil {
-		t.Fatal("verify should reject unauthorized key")
+	nonce, _ := GenerateNonce()
+	tsUnix := time.Now().Unix()
+	payload := buildPayload(nonce, tsUnix)
+	sig, _ := signer1.Sign(rand.Reader, payload)
+	pubkeyStr := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(signer1.PublicKey())))
+
+	_, err := auth.Authenticate(context.Background(), &sgardpb.AuthenticateRequest{
+		Nonce:     nonce,
+		Timestamp: tsUnix,
+		Signature: ssh.Marshal(sig),
+		PublicKey: pubkeyStr,
+	})
+	if err == nil {
+		t.Fatal("should reject unauthorized key")
 	}
 }
 
-func TestAuthRejectExpiredTimestamp(t *testing.T) {
+func TestExpiredTokenReturnsChallenge(t *testing.T) {
 	signer, pubkey := generateTestKey(t)
-	interceptor := NewAuthInterceptorFromKeys([]ssh.PublicKey{pubkey})
+	auth := NewAuthInterceptorFromKeys([]ssh.PublicKey{pubkey}, testJWTKey)
 
-	nonce, err := GenerateNonce()
+	// Issue a token, then manually create an expired one.
+	fp := ssh.FingerprintSHA256(signer.PublicKey())
+	expiredToken, err := auth.issueExpiredToken(fp)
 	if err != nil {
-		t.Fatalf("generating nonce: %v", err)
-	}
-	// Timestamp 10 minutes ago — outside the 5-minute window.
-	tsUnix := time.Now().Add(-10 * time.Minute).Unix()
-	payload := buildPayload(nonce, tsUnix)
-
-	sig, err := signer.Sign(rand.Reader, payload)
-	if err != nil {
-		t.Fatalf("signing: %v", err)
+		t.Fatalf("issuing expired token: %v", err)
 	}
 
-	pubkeyStr := string(ssh.MarshalAuthorizedKey(signer.PublicKey()))
-
-	md := metadata.New(map[string]string{
-		metaNonce:     base64.StdEncoding.EncodeToString(nonce),
-		metaTimestamp: strconv.FormatInt(tsUnix, 10),
-		metaSignature: base64.StdEncoding.EncodeToString(ssh.Marshal(sig)),
-		metaPubkey:    pubkeyStr,
-	})
+	md := metadata.New(map[string]string{metaToken: expiredToken})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-
-	if err := interceptor.verify(ctx); err == nil {
-		t.Fatal("verify should reject expired timestamp")
+	err = auth.verifyToken(ctx)
+	if err == nil {
+		t.Fatal("should reject expired token")
 	}
+
+	// The error should contain a ReauthChallenge in its details.
+	// We can't easily extract it here without the client helper,
+	// but verify the error message indicates expiry.
+	if !strings.Contains(err.Error(), "expired") {
+		t.Errorf("error should mention expiry, got: %v", err)
+	}
+}
+
+// issueExpiredToken is a test helper that creates an already-expired JWT.
+func (a *AuthInterceptor) issueExpiredToken(fingerprint string) (string, error) {
+	past := time.Now().Add(-time.Hour)
+	claims := &jwt.RegisteredClaims{
+		Subject:   fingerprint,
+		IssuedAt:  jwt.NewNumericDate(past.Add(-24 * time.Hour)),
+		ExpiresAt: jwt.NewNumericDate(past),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(a.jwtKey)
 }

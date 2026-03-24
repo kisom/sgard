@@ -82,8 +82,32 @@ message PruneResponse {
   int32 blobs_removed = 1;
 }
 
+// Auth messages.
+
+message AuthenticateRequest {
+  bytes  nonce      = 1; // 32-byte nonce (server-provided or client-generated)
+  int64  timestamp  = 2; // Unix seconds
+  bytes  signature  = 3; // SSH signature over (nonce || timestamp)
+  string public_key = 4; // SSH public key in authorized_keys format
+}
+
+message AuthenticateResponse {
+  string token = 1; // JWT valid for 30 days
+}
+
+// ReauthChallenge is embedded in Unauthenticated error details when a
+// token is expired but was previously valid. The client signs this
+// challenge to obtain a new token without generating its own nonce.
+message ReauthChallenge {
+  bytes nonce     = 1; // server-generated 32-byte nonce
+  int64 timestamp = 2; // server's current Unix timestamp
+}
+
 // GardenSync is the sgard remote sync service.
 service GardenSync {
+  // Authenticate exchanges an SSH-signed challenge for a JWT token.
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+
   // Push flow: send manifest, then stream missing blobs.
   rpc PushManifest(PushManifestRequest) returns (PushManifestResponse);
   rpc PushBlobs(stream PushBlobsRequest) returns (PushBlobsResponse);

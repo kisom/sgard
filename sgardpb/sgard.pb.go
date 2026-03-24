@@ -730,6 +730,173 @@ func (x *PruneResponse) GetBlobsRemoved() int32 {
 	return 0
 }
 
+type AuthenticateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Nonce         []byte                 `protobuf:"bytes,1,opt,name=nonce,proto3" json:"nonce,omitempty"`                          // 32-byte nonce (server-provided or client-generated)
+	Timestamp     int64                  `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`                 // Unix seconds
+	Signature     []byte                 `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`                  // SSH signature over (nonce || timestamp)
+	PublicKey     string                 `protobuf:"bytes,4,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"` // SSH public key in authorized_keys format
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthenticateRequest) Reset() {
+	*x = AuthenticateRequest{}
+	mi := &file_sgard_v1_sgard_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthenticateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthenticateRequest) ProtoMessage() {}
+
+func (x *AuthenticateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_sgard_v1_sgard_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthenticateRequest.ProtoReflect.Descriptor instead.
+func (*AuthenticateRequest) Descriptor() ([]byte, []int) {
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AuthenticateRequest) GetNonce() []byte {
+	if x != nil {
+		return x.Nonce
+	}
+	return nil
+}
+
+func (x *AuthenticateRequest) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+func (x *AuthenticateRequest) GetSignature() []byte {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+func (x *AuthenticateRequest) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+type AuthenticateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"` // JWT valid for 30 days
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthenticateResponse) Reset() {
+	*x = AuthenticateResponse{}
+	mi := &file_sgard_v1_sgard_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthenticateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthenticateResponse) ProtoMessage() {}
+
+func (x *AuthenticateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_sgard_v1_sgard_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthenticateResponse.ProtoReflect.Descriptor instead.
+func (*AuthenticateResponse) Descriptor() ([]byte, []int) {
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *AuthenticateResponse) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+// ReauthChallenge is embedded in Unauthenticated error details when a
+// token is expired but was previously valid. The client signs this
+// challenge to obtain a new token without generating its own nonce.
+type ReauthChallenge struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Nonce         []byte                 `protobuf:"bytes,1,opt,name=nonce,proto3" json:"nonce,omitempty"`          // server-generated 32-byte nonce
+	Timestamp     int64                  `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"` // server's current Unix timestamp
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReauthChallenge) Reset() {
+	*x = ReauthChallenge{}
+	mi := &file_sgard_v1_sgard_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReauthChallenge) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReauthChallenge) ProtoMessage() {}
+
+func (x *ReauthChallenge) ProtoReflect() protoreflect.Message {
+	mi := &file_sgard_v1_sgard_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReauthChallenge.ProtoReflect.Descriptor instead.
+func (*ReauthChallenge) Descriptor() ([]byte, []int) {
+	return file_sgard_v1_sgard_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ReauthChallenge) GetNonce() []byte {
+	if x != nil {
+		return x.Nonce
+	}
+	return nil
+}
+
+func (x *ReauthChallenge) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
 var File_sgard_v1_sgard_proto protoreflect.FileDescriptor
 
 const file_sgard_v1_sgard_proto_rawDesc = "" +
@@ -776,9 +943,21 @@ const file_sgard_v1_sgard_proto_rawDesc = "" +
 	"\x05chunk\x18\x01 \x01(\v2\x13.sgard.v1.BlobChunkR\x05chunk\"\x0e\n" +
 	"\fPruneRequest\"4\n" +
 	"\rPruneResponse\x12#\n" +
-	"\rblobs_removed\x18\x01 \x01(\x05R\fblobsRemoved2\xf4\x02\n" +
+	"\rblobs_removed\x18\x01 \x01(\x05R\fblobsRemoved\"\x86\x01\n" +
+	"\x13AuthenticateRequest\x12\x14\n" +
+	"\x05nonce\x18\x01 \x01(\fR\x05nonce\x12\x1c\n" +
+	"\ttimestamp\x18\x02 \x01(\x03R\ttimestamp\x12\x1c\n" +
+	"\tsignature\x18\x03 \x01(\fR\tsignature\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x04 \x01(\tR\tpublicKey\",\n" +
+	"\x14AuthenticateResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"E\n" +
+	"\x0fReauthChallenge\x12\x14\n" +
+	"\x05nonce\x18\x01 \x01(\fR\x05nonce\x12\x1c\n" +
+	"\ttimestamp\x18\x02 \x01(\x03R\ttimestamp2\xc3\x03\n" +
 	"\n" +
 	"GardenSync\x12M\n" +
+	"\fAuthenticate\x12\x1d.sgard.v1.AuthenticateRequest\x1a\x1e.sgard.v1.AuthenticateResponse\x12M\n" +
 	"\fPushManifest\x12\x1d.sgard.v1.PushManifestRequest\x1a\x1e.sgard.v1.PushManifestResponse\x12F\n" +
 	"\tPushBlobs\x12\x1a.sgard.v1.PushBlobsRequest\x1a\x1b.sgard.v1.PushBlobsResponse(\x01\x12M\n" +
 	"\fPullManifest\x12\x1d.sgard.v1.PullManifestRequest\x1a\x1e.sgard.v1.PullManifestResponse\x12F\n" +
@@ -798,7 +977,7 @@ func file_sgard_v1_sgard_proto_rawDescGZIP() []byte {
 }
 
 var file_sgard_v1_sgard_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_sgard_v1_sgard_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_sgard_v1_sgard_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_sgard_v1_sgard_proto_goTypes = []any{
 	(PushManifestResponse_Decision)(0), // 0: sgard.v1.PushManifestResponse.Decision
 	(*ManifestEntry)(nil),              // 1: sgard.v1.ManifestEntry
@@ -814,31 +993,36 @@ var file_sgard_v1_sgard_proto_goTypes = []any{
 	(*PullBlobsResponse)(nil),          // 11: sgard.v1.PullBlobsResponse
 	(*PruneRequest)(nil),               // 12: sgard.v1.PruneRequest
 	(*PruneResponse)(nil),              // 13: sgard.v1.PruneResponse
-	(*timestamppb.Timestamp)(nil),      // 14: google.protobuf.Timestamp
+	(*AuthenticateRequest)(nil),        // 14: sgard.v1.AuthenticateRequest
+	(*AuthenticateResponse)(nil),       // 15: sgard.v1.AuthenticateResponse
+	(*ReauthChallenge)(nil),            // 16: sgard.v1.ReauthChallenge
+	(*timestamppb.Timestamp)(nil),      // 17: google.protobuf.Timestamp
 }
 var file_sgard_v1_sgard_proto_depIdxs = []int32{
-	14, // 0: sgard.v1.ManifestEntry.updated:type_name -> google.protobuf.Timestamp
-	14, // 1: sgard.v1.Manifest.created:type_name -> google.protobuf.Timestamp
-	14, // 2: sgard.v1.Manifest.updated:type_name -> google.protobuf.Timestamp
+	17, // 0: sgard.v1.ManifestEntry.updated:type_name -> google.protobuf.Timestamp
+	17, // 1: sgard.v1.Manifest.created:type_name -> google.protobuf.Timestamp
+	17, // 2: sgard.v1.Manifest.updated:type_name -> google.protobuf.Timestamp
 	1,  // 3: sgard.v1.Manifest.files:type_name -> sgard.v1.ManifestEntry
 	2,  // 4: sgard.v1.PushManifestRequest.manifest:type_name -> sgard.v1.Manifest
 	0,  // 5: sgard.v1.PushManifestResponse.decision:type_name -> sgard.v1.PushManifestResponse.Decision
-	14, // 6: sgard.v1.PushManifestResponse.server_updated:type_name -> google.protobuf.Timestamp
+	17, // 6: sgard.v1.PushManifestResponse.server_updated:type_name -> google.protobuf.Timestamp
 	3,  // 7: sgard.v1.PushBlobsRequest.chunk:type_name -> sgard.v1.BlobChunk
 	2,  // 8: sgard.v1.PullManifestResponse.manifest:type_name -> sgard.v1.Manifest
 	3,  // 9: sgard.v1.PullBlobsResponse.chunk:type_name -> sgard.v1.BlobChunk
-	4,  // 10: sgard.v1.GardenSync.PushManifest:input_type -> sgard.v1.PushManifestRequest
-	6,  // 11: sgard.v1.GardenSync.PushBlobs:input_type -> sgard.v1.PushBlobsRequest
-	8,  // 12: sgard.v1.GardenSync.PullManifest:input_type -> sgard.v1.PullManifestRequest
-	10, // 13: sgard.v1.GardenSync.PullBlobs:input_type -> sgard.v1.PullBlobsRequest
-	12, // 14: sgard.v1.GardenSync.Prune:input_type -> sgard.v1.PruneRequest
-	5,  // 15: sgard.v1.GardenSync.PushManifest:output_type -> sgard.v1.PushManifestResponse
-	7,  // 16: sgard.v1.GardenSync.PushBlobs:output_type -> sgard.v1.PushBlobsResponse
-	9,  // 17: sgard.v1.GardenSync.PullManifest:output_type -> sgard.v1.PullManifestResponse
-	11, // 18: sgard.v1.GardenSync.PullBlobs:output_type -> sgard.v1.PullBlobsResponse
-	13, // 19: sgard.v1.GardenSync.Prune:output_type -> sgard.v1.PruneResponse
-	15, // [15:20] is the sub-list for method output_type
-	10, // [10:15] is the sub-list for method input_type
+	14, // 10: sgard.v1.GardenSync.Authenticate:input_type -> sgard.v1.AuthenticateRequest
+	4,  // 11: sgard.v1.GardenSync.PushManifest:input_type -> sgard.v1.PushManifestRequest
+	6,  // 12: sgard.v1.GardenSync.PushBlobs:input_type -> sgard.v1.PushBlobsRequest
+	8,  // 13: sgard.v1.GardenSync.PullManifest:input_type -> sgard.v1.PullManifestRequest
+	10, // 14: sgard.v1.GardenSync.PullBlobs:input_type -> sgard.v1.PullBlobsRequest
+	12, // 15: sgard.v1.GardenSync.Prune:input_type -> sgard.v1.PruneRequest
+	15, // 16: sgard.v1.GardenSync.Authenticate:output_type -> sgard.v1.AuthenticateResponse
+	5,  // 17: sgard.v1.GardenSync.PushManifest:output_type -> sgard.v1.PushManifestResponse
+	7,  // 18: sgard.v1.GardenSync.PushBlobs:output_type -> sgard.v1.PushBlobsResponse
+	9,  // 19: sgard.v1.GardenSync.PullManifest:output_type -> sgard.v1.PullManifestResponse
+	11, // 20: sgard.v1.GardenSync.PullBlobs:output_type -> sgard.v1.PullBlobsResponse
+	13, // 21: sgard.v1.GardenSync.Prune:output_type -> sgard.v1.PruneResponse
+	16, // [16:22] is the sub-list for method output_type
+	10, // [10:16] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
@@ -855,7 +1039,7 @@ func file_sgard_v1_sgard_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_sgard_v1_sgard_proto_rawDesc), len(file_sgard_v1_sgard_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   13,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
