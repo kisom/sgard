@@ -7,22 +7,24 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Pre-implementation — design complete, ready to begin Step 1.
+**Phase:** Step 1 complete. Ready for Steps 2 & 3 (can be parallel).
 
 **Last updated:** 2026-03-23
 
 ## Completed Steps
 
-(none yet)
+- **Step 1: Project Scaffolding** — removed old C++ files and `.trunk/` config,
+  initialized Go module, added cobra + yaml.v3 deps, created package dirs,
+  set up cobra root command with `--repo` flag.
 
 ## In Progress
 
-(none yet)
+(none)
 
 ## Up Next
 
-Step 1: Project Scaffolding — remove old C++ files, initialize Go module,
-create directory structure, set up cobra root command.
+Step 2 (Manifest Package) and Step 3 (Store Package) — these can be done
+in parallel.
 
 ## Known Issues / Decisions Deferred
 
@@ -36,3 +38,4 @@ create directory structure, set up cobra root command.
 | Date | Step | Summary |
 |---|---|---|
 | 2026-03-23 | — | Design phase complete. ARCHITECTURE.md and PROJECT_PLAN.md written. |
+| 2026-03-23 | 1 | Scaffolding complete. Old C++ removed, Go module initialized, cobra root command. |

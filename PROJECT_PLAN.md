@@ -6,13 +6,13 @@ Implementation plan for sgard. See ARCHITECTURE.md for design details.
 
 Remove old C++ source files and set up the Go project.
 
-- [ ] Remove old files: `sgard.cc`, `proto/`, `CMakeLists.txt`, `scripts/`, `.clang-format`, `.clang-tidy`, `.idea/`
-- [ ] `go mod init github.com/kisom/sgard`
-- [ ] Add dependencies: `gopkg.in/yaml.v3`, `github.com/spf13/cobra`
-- [ ] Create directory structure: `cmd/sgard/`, `manifest/`, `store/`, `garden/`
-- [ ] Set up `cmd/sgard/main.go` with cobra root command and `--repo` persistent flag
-- [ ] Update CLAUDE.md to reflect Go project
-- [ ] Verify: `go build ./...` compiles clean
+- [x] Remove old files: `sgard.cc`, `proto/`, `CMakeLists.txt`, `scripts/`, `.clang-format`, `.clang-tidy`, `.idea/`, `.trunk/`
+- [x] `go mod init github.com/kisom/sgard`
+- [x] Add dependencies: `gopkg.in/yaml.v3`, `github.com/spf13/cobra`
+- [x] Create directory structure: `cmd/sgard/`, `manifest/`, `store/`, `garden/`
+- [x] Set up `cmd/sgard/main.go` with cobra root command and `--repo` persistent flag
+- [x] Update CLAUDE.md to reflect Go project
+- [x] Verify: `go build ./...` compiles clean
 
 ## Step 2: Manifest Package
 
