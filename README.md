@@ -28,6 +28,15 @@ Or install into `$GOBIN`:
 go install github.com/kisom/sgard/cmd/sgard@latest
 ```
 
+NixOS (flake):
+
+```
+nix profile install github:kisom/sgard
+```
+
+Or add to your flake inputs and include `sgard.packages.${system}.default`
+in your packages.
+
 Binaries are also available on the
 [releases page](https://github.com/kisom/sgard/releases).
 

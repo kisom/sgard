@@ -34,6 +34,7 @@ A sgard repository is a single directory with this structure:
 ```
 <repo>/
   manifest.yaml          # single manifest tracking all files
+  .gitignore             # excludes blobs/ (created by sgard init)
   blobs/
     a1/b2/a1b2c3d4...   # content-addressable file storage
 ```
@@ -134,39 +135,28 @@ sgard restore --repo /mnt/usb/dotfiles
 
 ```
 sgard/
-  cmd/
-    sgard/                # CLI entry point
-      main.go             # cobra root command, --repo flag
-      init.go             # sgard init
-      add.go              # sgard add
-      remove.go           # sgard remove
-      checkpoint.go       # sgard checkpoint
-      restore.go          # sgard restore
-      status.go           # sgard status
-      verify.go           # sgard verify
-      list.go             # sgard list
-      diff.go             # sgard diff
-    sgardd/               # gRPC server entry point (Phase 2)
+  cmd/sgard/              # CLI entry point — one file per command
+    main.go               # cobra root command, --repo flag
+    version.go            # sgard version (ldflags-injected)
+    init.go add.go remove.go checkpoint.go
+    restore.go status.go verify.go list.go diff.go
 
-  garden/                 # Core business logic
-    garden.go             # Garden struct: orchestrates manifest + store + filesystem
-    garden_test.go
+  garden/                 # Core business logic — one file per operation
+    garden.go             # Garden struct, Init, Open, Add, Checkpoint, Status
+    restore.go            # Restore with timestamp comparison and confirm callback
+    remove.go verify.go list.go diff.go
     hasher.go             # SHA-256 file hashing
-    diff.go               # File diff generation
+    e2e_test.go           # Full lifecycle integration test
 
   manifest/               # YAML manifest parsing
     manifest.go           # Manifest and Entry structs, Load/Save
-    manifest_test.go
 
   store/                  # Content-addressable blob storage
     store.go              # Store struct: Write/Read/Exists/Delete
-    store_test.go
 
-  proto/                  # gRPC service definition (Phase 2)
-    sgard/v1/
-      sgard.proto
-
-  server/                 # gRPC server implementation (Phase 2)
+  flake.nix               # Nix flake for building on NixOS
+  .goreleaser.yaml        # GoReleaser config for releases
+  .github/workflows/      # GitHub Actions release pipeline
 ```
 
 ### Key Architectural Rule
@@ -177,17 +167,20 @@ The `Garden` struct is the central coordinator:
 
 ```go
 type Garden struct {
-    manifest *manifest.Manifest
-    store    *store.Store
-    root     string  // repository root directory
+    manifest     *manifest.Manifest
+    store        *store.Store
+    root         string              // repository root directory
+    manifestPath string
+    clock        clockwork.Clock     // injectable for testing
 }
 
 func (g *Garden) Add(paths []string) error
 func (g *Garden) Remove(paths []string) error
 func (g *Garden) Checkpoint(message string) error
-func (g *Garden) Restore(paths []string, force bool) error
+func (g *Garden) Restore(paths []string, force bool, confirm func(path string) bool) error
 func (g *Garden) Status() ([]FileStatus, error)
 func (g *Garden) Verify() ([]VerifyResult, error)
+func (g *Garden) List() []manifest.Entry
 func (g *Garden) Diff(path string) (string, error)
 ```
 
@@ -201,8 +194,8 @@ as the CLI — no logic duplication.
 different usernames.
 
 **No history.** Phase 1 stores only the latest checkpoint. For versioning,
-place the manifest under git. The `blobs/` directory should be gitignored —
-blob durability (backup, replication) is deferred to a future phase.
+place the repo under git — `sgard init` creates a `.gitignore` that excludes
+`blobs/`. Blob durability (backup, replication) is deferred to a future phase.
 
 **Per-file timestamps.** Each manifest entry records an `updated` timestamp
 set at checkpoint time. On restore, if the manifest entry is newer than the
@@ -213,5 +206,5 @@ on disk is newer or the times match, sgard prompts for confirmation.
 **Atomic writes.** Checkpoint writes `manifest.yaml.tmp` then renames to
 `manifest.yaml`. A crash cannot corrupt the manifest.
 
-**Old C++/proto source files** are retained in the git history for reference
-and will be removed as part of the Go rewrite.
+**Timestamp comparison truncates to seconds** for cross-platform filesystem
+compatibility.

@@ -66,3 +66,4 @@ Phase 1 is complete. Future work: blob durability, gRPC remote mode.
 | 2026-03-23 | 6 | Restore complete. Selective paths, force/confirm, timestamp logic, symlinks, permissions. 6 tests. |
 | 2026-03-23 | 7 | Remaining commands complete. Remove, Verify, List, Diff — 10 tests across 4 parallel units. |
 | 2026-03-23 | 8 | Polish complete. golangci-lint, clockwork, e2e test, doc updates. |
+| 2026-03-23 | — | README, goreleaser config, version command, Nix flake, homebrew formula, release pipeline validated (v0.1.0–v0.1.2). |

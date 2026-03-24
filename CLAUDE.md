@@ -24,6 +24,11 @@ Module: `github.com/kisom/sgard`. Author: K. Isom <kyle@imap.cc>.
 go build ./cmd/sgard
 ```
 
+Nix:
+```bash
+nix build .#sgard
+```
+
 Run tests:
 ```bash
 go test ./...
