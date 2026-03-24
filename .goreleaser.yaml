@@ -5,7 +5,9 @@ before:
     - go mod tidy
 
 builds:
-  - main: ./cmd/sgard
+  - id: sgard
+    main: ./cmd/sgard
+    binary: sgard
     env:
       - CGO_ENABLED=0
     ldflags:
@@ -17,10 +19,22 @@ builds:
       - amd64
       - arm64
 
+  - id: sgardd
+    main: ./cmd/sgardd
+    binary: sgardd
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
 archives:
   - formats: [binary]
     name_template: >-
-      {{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{- if .Arm }}v{{ .Arm }}{{ end }}_v{{ .Version }}
+      {{ .Binary }}_{{ .Os }}_{{ .Arch }}{{- if .Arm }}v{{ .Arm }}{{ end }}_v{{ .Version }}
 
 changelog:
   sort: asc

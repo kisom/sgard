@@ -171,11 +171,11 @@ Depends on Steps 13, 14.
 
 ### Step 16: Polish + Release
 
-- [ ] Update ARCHITECTURE.md, README.md, CLAUDE.md, PROGRESS.md
-- [ ] Update flake.nix (add sgardd, protoc to devShell)
-- [ ] Update .goreleaser.yaml (add sgardd build)
-- [ ] E2e integration test: init two repos, push from one, pull into other
-- [ ] Verify: all tests pass, full push/pull cycle works
+- [x] Update ARCHITECTURE.md, README.md, CLAUDE.md, PROGRESS.md
+- [x] Update flake.nix (add sgardd, updated vendorHash)
+- [x] Update .goreleaser.yaml (add sgardd build)
+- [x] E2e integration test: init two repos, push from one, pull into other (with auth)
+- [x] Verify: all tests pass, full push/pull cycle works
 
 ## Future Steps (Not Phase 2)
 

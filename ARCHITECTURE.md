@@ -123,69 +123,128 @@ sgard checkpoint -m "initial" --repo /mnt/usb/dotfiles
 sgard restore --repo /mnt/usb/dotfiles
 ```
 
-### Phase 2 — Remote (Future)
+### Phase 2 — Remote
 
 | Command | Description |
 |---|---|
 | `sgard push` | Push checkpoint to remote gRPC server |
 | `sgard pull` | Pull checkpoint from remote gRPC server |
-| `sgard serve` | Run the gRPC daemon |
+| `sgard prune` | Remove orphaned blobs (local or `--remote`) |
+| `sgard mirror up <path>` | Sync filesystem → manifest (add new, remove deleted) |
+| `sgard mirror down <path>` | Sync manifest → filesystem (restore + delete untracked) |
+| `sgardd` | Run the gRPC sync daemon |
+
+## gRPC Protocol
+
+The GardenSync service uses four RPCs for sync plus one for maintenance:
+
+```
+service GardenSync {
+  rpc PushManifest(PushManifestRequest) returns (PushManifestResponse);
+  rpc PushBlobs(stream PushBlobsRequest) returns (PushBlobsResponse);
+  rpc PullManifest(PullManifestRequest) returns (PullManifestResponse);
+  rpc PullBlobs(PullBlobsRequest) returns (stream PullBlobsResponse);
+  rpc Prune(PruneRequest) returns (PruneResponse);
+}
+```
+
+**Push flow:** Client sends manifest → server compares `manifest.Updated`
+timestamps → if client newer, server returns list of missing blob hashes →
+client streams those blobs (64 KiB chunks) → server replaces its manifest.
+
+**Pull flow:** Client requests server manifest → compares timestamps locally →
+if server newer, requests missing blobs → server streams them → client
+replaces its manifest.
+
+**Last timestamp wins** for conflict resolution (single-user, personal sync).
+
+## Authentication
+
+SSH key signing via gRPC metadata interceptors:
+- Server loads an `authorized_keys` file (standard SSH format)
+- Client signs a nonce+timestamp with SSH private key (via ssh-agent or key file)
+- Signature + public key sent as gRPC metadata on every call
+- 5-minute timestamp window prevents replay
 
 ## Go Package Structure
 
 ```
 sgard/
   cmd/sgard/              # CLI entry point — one file per command
-    main.go               # cobra root command, --repo flag
-    version.go            # sgard version (ldflags-injected)
+    main.go               # cobra root command, --repo/--remote/--ssh-key flags
+    push.go pull.go prune.go mirror.go
     init.go add.go remove.go checkpoint.go
-    restore.go status.go verify.go list.go diff.go
+    restore.go status.go verify.go list.go diff.go version.go
+
+  cmd/sgardd/             # gRPC server daemon
+    main.go               # --listen, --repo, --authorized-keys flags
 
   garden/                 # Core business logic — one file per operation
-    garden.go             # Garden struct, Init, Open, Add, Checkpoint, Status
-    restore.go            # Restore with timestamp comparison and confirm callback
-    remove.go verify.go list.go diff.go
+    garden.go             # Garden struct, Init, Open, Add, Checkpoint, Status, accessors
+    restore.go mirror.go prune.go remove.go verify.go list.go diff.go
     hasher.go             # SHA-256 file hashing
-    e2e_test.go           # Full lifecycle integration test
 
   manifest/               # YAML manifest parsing
     manifest.go           # Manifest and Entry structs, Load/Save
 
   store/                  # Content-addressable blob storage
-    store.go              # Store struct: Write/Read/Exists/Delete
+    store.go              # Store struct: Write/Read/Exists/Delete/List
 
-  flake.nix               # Nix flake for building on NixOS
-  .goreleaser.yaml        # GoReleaser config for releases
-  .github/workflows/      # GitHub Actions release pipeline
+  server/                 # gRPC server implementation
+    server.go             # GardenSync RPC handlers with RWMutex
+    auth.go               # SSH key auth interceptor
+    convert.go            # proto ↔ manifest type conversion
+
+  client/                 # gRPC client library
+    client.go             # Push, Pull, Prune methods
+    auth.go               # SSHCredentials (PerRPCCredentials), LoadSigner
+
+  sgardpb/                # Generated protobuf + gRPC Go code
+  proto/sgard/v1/         # Proto source definitions
+
+  flake.nix               # Nix flake (builds sgard + sgardd)
+  .goreleaser.yaml        # GoReleaser (builds both binaries)
 ```
 
 ### Key Architectural Rule
 
-**The `garden` package contains all logic. The `cmd` package is pure CLI wiring.**
-
-The `Garden` struct is the central coordinator:
+**The `garden` package contains all logic. The `cmd` package is pure CLI
+wiring. The `server` package wraps `Garden` methods as gRPC endpoints.**
 
 ```go
 type Garden struct {
     manifest     *manifest.Manifest
     store        *store.Store
-    root         string              // repository root directory
+    root         string
     manifestPath string
-    clock        clockwork.Clock     // injectable for testing
+    clock        clockwork.Clock
 }
 
+// Local operations
 func (g *Garden) Add(paths []string) error
 func (g *Garden) Remove(paths []string) error
 func (g *Garden) Checkpoint(message string) error
-func (g *Garden) Restore(paths []string, force bool, confirm func(path string) bool) error
+func (g *Garden) Restore(paths []string, force bool, confirm func(string) bool) error
 func (g *Garden) Status() ([]FileStatus, error)
 func (g *Garden) Verify() ([]VerifyResult, error)
 func (g *Garden) List() []manifest.Entry
 func (g *Garden) Diff(path string) (string, error)
+func (g *Garden) Prune() (int, error)
+func (g *Garden) MirrorUp(paths []string) error
+func (g *Garden) MirrorDown(paths []string, force bool, confirm func(string) bool) error
+
+// Accessors (used by server package)
+func (g *Garden) GetManifest() *manifest.Manifest
+func (g *Garden) BlobExists(hash string) bool
+func (g *Garden) ReadBlob(hash string) ([]byte, error)
+func (g *Garden) WriteBlob(data []byte) (string, error)
+func (g *Garden) ReplaceManifest(m *manifest.Manifest) error
+func (g *Garden) ListBlobs() ([]string, error)
+func (g *Garden) DeleteBlob(hash string) error
 ```
 
-This separation means the future gRPC server calls the same `Garden` methods
-as the CLI — no logic duplication.
+The gRPC server calls the same `Garden` methods as the CLI — no logic
+duplication.
 
 ## Design Decisions
 
@@ -193,9 +252,13 @@ as the CLI — no logic duplication.
 `$HOME` at runtime. This makes the manifest portable across machines with
 different usernames.
 
-**No history.** Phase 1 stores only the latest checkpoint. For versioning,
-place the repo under git — `sgard init` creates a `.gitignore` that excludes
-`blobs/`. Blob durability (backup, replication) is deferred to a future phase.
+**Adding a directory recurses.** `Add` walks directories and adds each
+file/symlink individually. Directories are not tracked as entries — only
+leaf files and symlinks.
+
+**No history.** Only the latest checkpoint is stored. For versioning, place
+the repo under git — `sgard init` creates a `.gitignore` that excludes
+`blobs/`.
 
 **Per-file timestamps.** Each manifest entry records an `updated` timestamp
 set at checkpoint time. On restore, if the manifest entry is newer than the
@@ -203,8 +266,13 @@ file on disk (by mtime), the restore proceeds without prompting. If the file
 on disk is newer or the times match, sgard prompts for confirmation.
 `--force` always skips the prompt.
 
-**Atomic writes.** Checkpoint writes `manifest.yaml.tmp` then renames to
-`manifest.yaml`. A crash cannot corrupt the manifest.
+**Atomic writes.** Manifest saves write to a temp file then rename.
 
 **Timestamp comparison truncates to seconds** for cross-platform filesystem
 compatibility.
+
+**Remote config resolution:** `--remote` flag > `SGARD_REMOTE` env >
+`<repo>/remote` file.
+
+**SSH key resolution:** `--ssh-key` flag > `SGARD_SSH_KEY` env > ssh-agent >
+`~/.ssh/id_ed25519` > `~/.ssh/id_rsa`.

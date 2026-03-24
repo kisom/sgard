@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 2 in progress. Steps 9–15 complete, ready for Step 16 (Polish).
+**Phase:** Phase 2 complete (Steps 9–16). Remote sync fully implemented.
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ Phase 2: gRPC Remote Sync.
 
 ## Up Next
 
-Step 16: Polish + Release.
+Phase 2 is complete. Future work: TLS transport, shell completions, multi-repo server.
 
 ## Known Issues / Decisions Deferred
 
@@ -76,3 +76,4 @@ Step 16: Polish + Release.
 | 2026-03-23 | 13 | Client library: Push, Pull, Prune with chunked blob streaming. 6 integration tests. |
 | 2026-03-23 | 14 | SSH key auth: server interceptor (authorized_keys, signature verification), client PerRPCCredentials (ssh-agent/key file). 8 tests including auth integration. |
 | 2026-03-24 | 15 | CLI wiring: push, pull, prune commands, sgardd daemon binary, --remote/--ssh-key flags, local prune with 2 tests. |
+| 2026-03-24 | 16 | Polish: updated all docs, flake.nix (sgardd + vendorHash), goreleaser (both binaries), e2e push/pull test with auth. |

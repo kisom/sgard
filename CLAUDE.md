@@ -21,12 +21,12 @@ Module: `github.com/kisom/sgard`. Author: K. Isom <kyle@imap.cc>.
 ## Build
 
 ```bash
-go build ./cmd/sgard
+go build ./...                   # both sgard and sgardd
 ```
 
 Nix:
 ```bash
-nix build .#sgard
+nix build .#sgard                # builds both binaries
 ```
 
 Run tests:
@@ -39,24 +39,36 @@ Lint:
 golangci-lint run ./...
 ```
 
+Regenerate proto (requires protoc toolchain):
+```bash
+make proto
+```
+
 ## Dependencies
 
 - `gopkg.in/yaml.v3` — manifest serialization
 - `github.com/spf13/cobra` — CLI framework
 - `github.com/jonboulle/clockwork` — injectable clock for deterministic tests
+- `google.golang.org/grpc` — gRPC runtime
+- `google.golang.org/protobuf` — protobuf runtime
+- `golang.org/x/crypto` — SSH key auth (ssh, ssh/agent)
 
 ## Package Structure
 
 ```
 cmd/sgard/    CLI entry point (cobra commands, pure wiring)
+cmd/sgardd/   gRPC server daemon
 garden/       Core business logic (Garden struct orchestrating everything)
 manifest/     YAML manifest parsing (Manifest/Entry structs, Load/Save)
 store/        Content-addressable blob storage (SHA-256 keyed)
+server/       gRPC server (RPC handlers, SSH auth interceptor, proto conversion)
+client/       gRPC client library (Push, Pull, Prune, SSH credentials)
+sgardpb/      Generated protobuf + gRPC Go code
 ```
 
 Key rule: all logic lives in `garden/`. The `cmd/` layer only parses flags
-and calls `Garden` methods. This enables the future gRPC server to reuse
-the same logic with zero duplication.
+and calls `Garden` methods. The `server` wraps `Garden` as gRPC endpoints.
+No logic duplication.
 
-Each garden operation (remove, verify, list, diff) lives in its own file
-(`garden/<op>.go`) to minimize merge conflicts during parallel development.
+Each garden operation lives in its own file (`garden/<op>.go`) to minimize
+merge conflicts during parallel development.

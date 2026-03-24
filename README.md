@@ -69,10 +69,12 @@ sgard restore --repo /mnt/usb/dotfiles
 
 ## Commands
 
+### Local
+
 | Command | Description |
 |---|---|
 | `init` | Create a new repository |
-| `add <path>...` | Track files, directories, or symlinks |
+| `add <path>...` | Track files, directories (recursed), or symlinks |
 | `remove <path>...` | Stop tracking files |
 | `checkpoint [-m msg]` | Re-hash tracked files and update the manifest |
 | `restore [path...] [-f]` | Restore files to their original locations |
@@ -80,7 +82,41 @@ sgard restore --repo /mnt/usb/dotfiles
 | `diff <path>` | Show content diff between stored and current file |
 | `list` | List all tracked files |
 | `verify` | Check blob store integrity against manifest hashes |
+| `prune` | Remove orphaned blobs not referenced by the manifest |
+| `mirror up <path>` | Sync filesystem → manifest (add new, remove deleted) |
+| `mirror down <path>` | Sync manifest → filesystem (restore + delete untracked) |
 | `version` | Print the version |
+
+### Remote sync
+
+| Command | Description |
+|---|---|
+| `push` | Push checkpoint to remote gRPC server |
+| `pull` | Pull checkpoint from remote gRPC server |
+| `prune --remote` | Remove orphaned blobs on the remote server |
+| `sgardd` | Run the gRPC sync daemon (separate binary) |
+
+Remote commands require `--remote host:port` (or `SGARD_REMOTE` env, or a
+`<repo>/remote` config file) and authenticate via SSH keys.
+
+## Remote sync
+
+Start the daemon on your server:
+
+```sh
+sgard init --repo /var/lib/sgard
+sgardd --repo /var/lib/sgard --authorized-keys ~/.ssh/authorized_keys
+```
+
+Push and pull from client machines:
+
+```sh
+sgard push --remote myserver:9473
+sgard pull --remote myserver:9473
+```
+
+Authentication uses your existing SSH keys (ssh-agent, `~/.ssh/id_ed25519`,
+or `--ssh-key`). No passwords or certificates to manage.
 
 ## How it works
 
@@ -100,6 +136,7 @@ mtime. If the manifest is newer, the file is restored without prompting.
 Otherwise, sgard asks for confirmation (`--force` skips the prompt).
 
 Paths under `$HOME` are stored as `~/...` in the manifest, making it
-portable across machines with different usernames.
+portable across machines with different usernames. Adding a directory
+recursively tracks all files and symlinks inside.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for full design details.

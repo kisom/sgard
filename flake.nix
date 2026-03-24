@@ -15,11 +15,11 @@
         packages = {
           sgard = pkgs.buildGoModule {
             pname = "sgard";
-            version = "0.1.0";
+            version = "2.0.0";
             src = pkgs.lib.cleanSource ./.;
-            subPackages = [ "cmd/sgard" ];
+            subPackages = [ "cmd/sgard" "cmd/sgardd" ];
 
-            vendorHash = "sha256-uJMkp08SqZaZ6d64Li4Tx8I9OYjaErLexBrJaf6Vb60=";
+            vendorHash = "sha256-6tLNIknbxrRWYKo5x7yMX6+JDJxbF5l2WBIxXaF7OZ4=";
 
             ldflags = [ "-s" "-w" ];
 
