@@ -286,10 +286,10 @@ SSH key resolution order (for initial authentication):
 
 ## Encryption
 
-sgard supports optional at-rest encryption for blob contents. When
-enabled, files are encrypted before being stored in the blob store and
-decrypted on restore. Encryption is per-repo — a repo is either
-encrypted or it isn't.
+sgard supports optional at-rest encryption for individual files.
+Encryption is per-file, not per-repo — any file can be marked as
+encrypted at add time. A repo may contain a mix of encrypted and
+plaintext blobs.
 
 ### Key Hierarchy
 
@@ -376,23 +376,33 @@ Rationale:
 
 **Manifest changes for encryption:**
 
-To support `status` without decrypting every blob, the manifest entry
-gains an optional `plaintext_hash` field:
+Encrypted entries gain two fields: `encrypted: true` and
+`plaintext_hash` (SHA-256 of the plaintext, for efficient `status`
+checks without decryption):
 
 ```yaml
 files:
   - path: ~/.bashrc
-    hash: a1b2c3d4...        # SHA-256 of encrypted blob (post-encryption)
-    plaintext_hash: e5f6a7... # SHA-256 of plaintext (pre-encryption)
+    hash: a1b2c3d4...        # SHA-256 of plaintext — not encrypted
     type: file
     mode: "0644"
     updated: "2026-03-24T..."
+
+  - path: ~/.ssh/config
+    hash: f8e9d0c1...        # SHA-256 of encrypted blob (post-encryption)
+    plaintext_hash: e5f6a7... # SHA-256 of plaintext (pre-encryption)
+    encrypted: true
+    type: file
+    mode: "0600"
+    updated: "2026-03-24T..."
 ```
 
+For unencrypted entries, `hash` is the SHA-256 of the plaintext (current
+behavior), and `plaintext_hash` and `encrypted` are omitted.
+
 `status` hashes the current file on disk and compares against
-`plaintext_hash`. This avoids decrypting stored blobs just to check
-if a file has changed. `verify` uses `hash` (the encrypted blob hash)
-to check store integrity without the DEK.
+`plaintext_hash` (for encrypted entries) or `hash` (for plaintext).
+`verify` always uses `hash` to check store integrity without the DEK.
 
 ### DEK Storage
 
@@ -421,7 +431,6 @@ Either source can unwrap the DEK. Adding a new source requires the DEK
 Encryption config stored at `<repo>/encryption.yaml`:
 
 ```yaml
-enabled: true
 algorithm: xchacha20-poly1305
 kek_sources:
   - type: passphrase
@@ -435,15 +444,25 @@ kek_sources:
     dek_file: dek.enc.fido2
 ```
 
+The presence of `encryption.yaml` indicates the repo has a DEK
+(encryption capability). Individual files opt in via `--encrypt` at
+add time.
+
 ### CLI Integration
 
-**Enabling encryption:**
+**Setting up encryption (creates DEK and first KEK source):**
 ```sh
-sgard init --encrypt              # prompts for passphrase
-sgard init --encrypt --fido2      # uses FIDO2 key
+sgard encrypt init                # prompts for passphrase
+sgard encrypt init --fido2        # uses FIDO2 key
 ```
 
-**Adding a KEK source to an existing encrypted repo:**
+**Adding encrypted files:**
+```sh
+sgard add --encrypt ~/.ssh/config ~/.aws/credentials
+sgard add ~/.bashrc               # not encrypted
+```
+
+**Adding a KEK source to an existing repo:**
 ```sh
 sgard encrypt add-passphrase      # add passphrase (requires existing unlock)
 sgard encrypt add-fido2           # add FIDO2 key (requires existing unlock)
@@ -455,9 +474,13 @@ sgard encrypt change-passphrase   # prompts for old and new
 ```
 
 **Unlocking:**
-Operations that need the DEK (add, checkpoint, restore, diff, mirror)
-prompt for the passphrase or FIDO2 touch automatically. The unlocked
-DEK can be cached in memory for the duration of the command.
+Operations that touch encrypted entries (add --encrypt, checkpoint,
+restore, diff, mirror on encrypted files) prompt for the passphrase
+or FIDO2 touch automatically. The DEK is cached in memory for the
+duration of the command.
+
+Operations that only touch plaintext entries never prompt — they work
+exactly as before, even if the repo has encryption configured.
 
 There is no long-lived unlock state — each command invocation that needs
 the DEK obtains it fresh. This is intentional: dotfile operations are
@@ -466,24 +489,35 @@ daemon or on-disk secret, both of which expand the attack surface.
 
 ### Security Properties
 
-- **At-rest confidentiality:** Blobs are encrypted. The manifest
-  contains paths and hashes but not file contents.
+- **Selective confidentiality:** Only files marked `--encrypt` are
+  encrypted. The manifest contains paths and hashes but not file
+  contents for encrypted entries.
 - **Server ignorance:** The server never has the DEK. Push/pull
-  transfers encrypted blobs. The server cannot read file contents.
+  transfers encrypted blobs opaquely. The server cannot read encrypted
+  file contents.
 - **Key rotation:** Changing the passphrase re-wraps the DEK without
   re-encrypting blobs.
-- **Compromise recovery:** If the DEK is compromised, all blobs must
-  be re-encrypted (not just re-wrapped). This is an explicit `sgard
-  encrypt rotate-dek` operation.
+- **Compromise recovery:** If the DEK is compromised, all encrypted
+  blobs must be re-encrypted (not just re-wrapped). This is an
+  explicit `sgard encrypt rotate-dek` operation.
 - **No plaintext leaks:** `diff` decrypts in memory, never writes
-  plaintext blobs to disk.
+  decrypted blobs to disk.
+- **Graceful degradation:** Commands that don't touch encrypted entries
+  work without the DEK. A `status` on a mixed repo can check plaintext
+  entries without prompting.
 
-### Non-Encrypted Repos
+### Repos Without Encryption
 
-Encryption is optional. Repos without encryption work exactly as before
-— no `encryption.yaml`, no DEK, blobs stored as plaintext. The `hash`
-field in the manifest is the SHA-256 of the plaintext (same as current
-behavior). The `plaintext_hash` field is omitted.
+A repo with no `encryption.yaml` has no DEK and cannot have encrypted
+entries. The `--encrypt` flag on `add` will error, prompting the user
+to run `sgard encrypt init` first. All existing behavior is unchanged.
+
+### Future: Manifest Signing
+
+Manifest signing (to detect tampering) is deferred. The challenge is
+the trust model: which key signs, and how does a pulling client verify
+the signature when multiple machines with different SSH keys push to
+the same server? This requires a proper trust/key-authority design.
 
 ## Go Package Structure
 
