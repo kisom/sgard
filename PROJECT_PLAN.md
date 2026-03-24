@@ -92,9 +92,82 @@ Depends on Step 5.
 - [x] Ensure `go vet ./...` and `go test ./...` pass clean
 - [x] Update CLAUDE.md, ARCHITECTURE.md, PROGRESS.md
 
-## Future Steps (Not Phase 1)
+## Phase 2: gRPC Remote Sync
 
-- Blob durability (backup/replication strategy)
-- gRPC remote mode (push/pull/serve)
-- Proto definitions for wire format
+### Step 9: Proto Definitions + Code Gen
+
+- [x] Write `proto/sgard/v1/sgard.proto` — 5 RPCs (PushManifest, PushBlobs, PullManifest, PullBlobs, Prune), all messages
+- [x] Add Makefile target for protoc code generation
+- [x] Add grpc, protobuf, x/crypto deps to go.mod
+- [x] Update flake.nix devShell with protoc tools
+- [x] Verify: `go build ./sgardpb` compiles
+
+### Step 10: Garden Accessor Methods
+
+*Can be done in parallel with Step 11.*
+
+- [ ] `garden/garden.go`: `GetManifest()`, `BlobExists()`, `ReadBlob()`, `WriteBlob()`, `ReplaceManifest()`
+- [ ] Tests for each accessor
+- [ ] Verify: `go test ./garden/...`
+
+### Step 11: Proto-Manifest Conversion
+
+*Can be done in parallel with Step 10.*
+
+- [ ] `server/convert.go`: `ManifestToProto`, `ProtoToManifest`, entry helpers
+- [ ] `server/convert_test.go`: round-trip test
+- [ ] Verify: `go test ./server/...`
+
+### Step 12: Server Implementation (No Auth)
+
+Depends on Steps 9, 10, 11.
+
+- [ ] `server/server.go`: Server struct with RWMutex, 4 RPC handlers
+- [ ] PushManifest: timestamp compare, compute missing blobs
+- [ ] PushBlobs: receive stream, write to store, replace manifest
+- [ ] PullManifest: return manifest
+- [ ] PullBlobs: stream requested blobs (64 KiB chunks)
+- [ ] `server/server_test.go`: in-process test with bufconn, push+pull between two repos
+
+### Step 13: Client Library (No Auth)
+
+Depends on Step 12.
+
+- [ ] `client/client.go`: Client struct, `Push()`, `Pull()` methods
+- [ ] `client/client_test.go`: integration test against in-process server
+
+### Step 14: SSH Key Auth
+
+- [ ] `server/auth.go`: AuthInterceptor, parse authorized_keys, verify SSH signatures
+- [ ] `client/auth.go`: LoadSigner (ssh-agent or key file), PerRPCCredentials
+- [ ] `server/auth_test.go`: in-memory ed25519 key pair, reject unauthenticated
+- [ ] `client/auth_test.go`: metadata generation test
+
+### Step 15: CLI Wiring + Prune
+
+Depends on Steps 13, 14.
+
+- [ ] `garden/prune.go`: `Prune() (int, error)` — collect referenced hashes from manifest, delete orphaned blobs, return count removed
+- [ ] `garden/prune_test.go`: add file, remove it, prune removes orphaned blob
+- [ ] `server/server.go`: add `Prune` RPC — server-side prune, returns count
+- [ ] `proto/sgard/v1/sgard.proto`: add `rpc Prune(PruneRequest) returns (PruneResponse)`
+- [ ] `client/client.go`: add `Prune()` method
+- [ ] `cmd/sgard/prune.go`: local prune; with `--remote` flag prunes remote instead
+- [ ] `cmd/sgard/main.go`: add `--remote`, `--ssh-key` persistent flags
+- [ ] `cmd/sgard/push.go`, `cmd/sgard/pull.go`
+- [ ] `cmd/sgardd/main.go`: flags, garden open, auth interceptor, gRPC serve
+- [ ] Verify: both binaries compile
+
+### Step 16: Polish + Release
+
+- [ ] Update ARCHITECTURE.md, README.md, CLAUDE.md, PROGRESS.md
+- [ ] Update flake.nix (add sgardd, protoc to devShell)
+- [ ] Update .goreleaser.yaml (add sgardd build)
+- [ ] E2e integration test: init two repos, push from one, pull into other
+- [ ] Verify: all tests pass, full push/pull cycle works
+
+## Future Steps (Not Phase 2)
+
 - Shell completion via cobra
+- TLS transport (optional --tls-cert/--tls-key on sgardd)
+- Multiple repo support on server

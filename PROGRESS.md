@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 1 complete (Steps 1–8). All local commands implemented.
+**Phase:** Phase 2 in progress. Step 9 complete, ready for Steps 10+11.
 
 **Last updated:** 2026-03-23
 
@@ -38,11 +38,11 @@ ARCHITECTURE.md for design details.
 
 ## In Progress
 
-(none)
+Phase 2: gRPC Remote Sync.
 
 ## Up Next
 
-Phase 1 is complete. Future work: blob durability, gRPC remote mode.
+Steps 10 (Garden accessors) + 11 (proto-manifest conversion) — can be parallel.
 
 ## Known Issues / Decisions Deferred
 
@@ -67,3 +67,5 @@ Phase 1 is complete. Future work: blob durability, gRPC remote mode.
 | 2026-03-23 | 7 | Remaining commands complete. Remove, Verify, List, Diff — 10 tests across 4 parallel units. |
 | 2026-03-23 | 8 | Polish complete. golangci-lint, clockwork, e2e test, doc updates. |
 | 2026-03-23 | — | README, goreleaser config, version command, Nix flake, homebrew formula, release pipeline validated (v0.1.0–v0.1.2). |
+| 2026-03-23 | — | v1.0.0 released. Docs updated for release. |
+| 2026-03-23 | 9 | Proto definitions: 5 RPCs (Push/Pull manifest+blobs, Prune), generated sgardpb, Makefile, deps added. |

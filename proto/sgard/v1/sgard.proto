@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package sgard.v1;
+
+option go_package = "github.com/kisom/sgard/sgardpb";
+
+import "google/protobuf/timestamp.proto";
+
+// ManifestEntry mirrors manifest.Entry from the YAML model.
+message ManifestEntry {
+  string path                        = 1;
+  string hash                        = 2;
+  string type                        = 3; // "file", "directory", "link"
+  string mode                        = 4;
+  string target                      = 5;
+  google.protobuf.Timestamp updated  = 6;
+}
+
+// Manifest mirrors the top-level manifest.Manifest.
+message Manifest {
+  int32                       version = 1;
+  google.protobuf.Timestamp   created = 2;
+  google.protobuf.Timestamp   updated = 3;
+  string                      message = 4;
+  repeated ManifestEntry      files   = 5;
+}
+
+// BlobChunk is one piece of a streamed blob. The first chunk for a given
+// hash carries the hash field; subsequent chunks omit it.
+message BlobChunk {
+  string hash = 1; // SHA-256 hex, present on the first chunk of each blob
+  bytes  data = 2; // up to 64 KiB per chunk
+}
+
+// Push messages.
+
+message PushManifestRequest {
+  Manifest manifest = 1;
+}
+
+message PushManifestResponse {
+  enum Decision {
+    DECISION_UNSPECIFIED = 0;
+    ACCEPTED             = 1; // server is older; push proceeds
+    REJECTED             = 2; // server is newer; client should pull
+    UP_TO_DATE           = 3; // timestamps match; nothing to do
+  }
+  Decision                    decision       = 1;
+  repeated string             missing_blobs  = 2; // hashes the server needs
+  google.protobuf.Timestamp   server_updated = 3;
+}
+
+message PushBlobsRequest {
+  BlobChunk chunk = 1;
+}
+
+message PushBlobsResponse {
+  int32 blobs_received = 1;
+}
+
+// Pull messages.
+
+message PullManifestRequest {}
+
+message PullManifestResponse {
+  Manifest manifest = 1;
+}
+
+message PullBlobsRequest {
+  repeated string hashes = 1; // blobs the client needs
+}
+
+message PullBlobsResponse {
+  BlobChunk chunk = 1;
+}
+
+// Prune messages.
+
+message PruneRequest {}
+
+message PruneResponse {
+  int32 blobs_removed = 1;
+}
+
+// GardenSync is the sgard remote sync service.
+service GardenSync {
+  // Push flow: send manifest, then stream missing blobs.
+  rpc PushManifest(PushManifestRequest) returns (PushManifestResponse);
+  rpc PushBlobs(stream PushBlobsRequest) returns (PushBlobsResponse);
+
+  // Pull flow: get manifest, then stream requested blobs.
+  rpc PullManifest(PullManifestRequest) returns (PullManifestResponse);
+  rpc PullBlobs(PullBlobsRequest) returns (stream PullBlobsResponse);
+
+  // Prune removes orphaned blobs on the server.
+  rpc Prune(PruneRequest) returns (PruneResponse);
+}
