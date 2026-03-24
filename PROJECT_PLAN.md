@@ -122,21 +122,22 @@ Depends on Step 5.
 
 Depends on Steps 9, 10, 11.
 
-- [ ] `server/server.go`: Server struct with RWMutex, 4 RPC handlers
-- [ ] PushManifest: timestamp compare, compute missing blobs
-- [ ] PushBlobs: receive stream, write to store, replace manifest
-- [ ] PullManifest: return manifest
-- [ ] PullBlobs: stream requested blobs (64 KiB chunks)
-- [ ] `server/server_test.go`: in-process test with bufconn, push+pull between two repos
+- [x] `server/server.go`: Server struct with RWMutex, 5 RPC handlers (+ Prune)
+- [x] PushManifest: timestamp compare, compute missing blobs
+- [x] PushBlobs: receive stream, write to store, replace manifest
+- [x] PullManifest: return manifest
+- [x] PullBlobs: stream requested blobs (64 KiB chunks)
+- [x] Prune: remove orphaned blobs (added store.List + garden.ListBlobs/DeleteBlob)
+- [x] `server/server_test.go`: in-process test with bufconn, push+pull+prune
 
 ### Step 12b: Directory Recursion and Mirror Command
 
-- [ ] `garden/garden.go`: `Add` recurses directories — walk all files/symlinks, add each as its own entry
-- [ ] `garden/mirror.go`: `MirrorUp(paths []string) error` — walk directory, add new files, remove entries for files gone from disk, re-hash changed
-- [ ] `garden/mirror.go`: `MirrorDown(paths []string, force bool, confirm func(string) bool) error` — restore all tracked files under path, delete anything not in manifest
-- [ ] `garden/mirror_test.go`: tests for recursive add, mirror up (detects new/removed), mirror down (cleans extras)
-- [ ] `cmd/sgard/mirror.go`: `sgard mirror up <path>`, `sgard mirror down <path> [--force]`
-- [ ] Update existing add tests for directory recursion
+- [x] `garden/garden.go`: `Add` recurses directories — walk all files/symlinks, add each as its own entry
+- [x] `garden/mirror.go`: `MirrorUp(paths []string) error` — walk directory, add new files, remove entries for files gone from disk, re-hash changed
+- [x] `garden/mirror.go`: `MirrorDown(paths []string, force bool, confirm func(string) bool) error` — restore all tracked files under path, delete anything not in manifest
+- [x] `garden/mirror_test.go`: tests for recursive add, mirror up (detects new/removed), mirror down (cleans extras)
+- [x] `cmd/sgard/mirror.go`: `sgard mirror up <path>`, `sgard mirror down <path> [--force]`
+- [x] Update existing add tests for directory recursion
 
 ### Step 13: Client Library (No Auth)
 

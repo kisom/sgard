@@ -127,6 +127,16 @@ func (g *Garden) ReplaceManifest(m *manifest.Manifest) error {
 	return nil
 }
 
+// ListBlobs returns all blob hashes in the store.
+func (g *Garden) ListBlobs() ([]string, error) {
+	return g.store.List()
+}
+
+// DeleteBlob removes a blob from the store by hash.
+func (g *Garden) DeleteBlob(hash string) error {
+	return g.store.Delete(hash)
+}
+
 // addEntry adds a single file or symlink to the manifest. The abs path must
 // already be resolved and info must come from os.Lstat. If skipDup is true,
 // already-tracked paths are silently skipped instead of returning an error.

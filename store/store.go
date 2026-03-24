@@ -131,6 +131,32 @@ func (s *Store) Delete(hash string) error {
 	return nil
 }
 
+// List returns all blob hashes in the store by walking the blobs directory.
+func (s *Store) List() ([]string, error) {
+	blobsDir := filepath.Join(s.root, "blobs")
+	var hashes []string
+	err := filepath.WalkDir(blobsDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		name := d.Name()
+		if validHash(name) {
+			hashes = append(hashes, name)
+		}
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("store: listing blobs: %w", err)
+	}
+	return hashes, nil
+}
+
 // blobPath returns the filesystem path for a blob with the given hash.
 // Layout: blobs/<first 2 hex chars>/<next 2 hex chars>/<full 64-char hash>
 func (s *Store) blobPath(hash string) string {
