@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Step 1 complete. Ready for Steps 2 & 3 (can be parallel).
+**Phase:** Step 2 complete. Ready for Step 3 (Store Package) and then Step 4.
 
 **Last updated:** 2026-03-23
 
@@ -16,6 +16,9 @@ ARCHITECTURE.md for design details.
 - **Step 1: Project Scaffolding** — removed old C++ files and `.trunk/` config,
   initialized Go module, added cobra + yaml.v3 deps, created package dirs,
   set up cobra root command with `--repo` flag.
+- **Step 2: Manifest Package** — `Manifest` and `Entry` structs with YAML tags,
+  `New()`, `Load(path)`, and `Save(path)` with atomic write. Tests cover
+  round-trip, atomic save, entry types, nonexistent file, and empty manifest.
 
 ## In Progress
 
@@ -23,8 +26,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 2 (Manifest Package) and Step 3 (Store Package) — these can be done
-in parallel.
+Step 3 (Store Package), then Step 4 (Garden Core).
 
 ## Known Issues / Decisions Deferred
 
@@ -39,3 +41,4 @@ in parallel.
 |---|---|---|
 | 2026-03-23 | — | Design phase complete. ARCHITECTURE.md and PROJECT_PLAN.md written. |
 | 2026-03-23 | 1 | Scaffolding complete. Old C++ removed, Go module initialized, cobra root command. |
+| 2026-03-23 | 2 | Manifest package complete. Structs, Load/Save with atomic write, full test suite. |

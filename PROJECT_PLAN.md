@@ -18,13 +18,13 @@ Remove old C++ source files and set up the Go project.
 
 *Can be done in parallel with Step 3.*
 
-- [ ] `manifest/manifest.go`: `Manifest` and `Entry` structs with YAML tags
+- [x] `manifest/manifest.go`: `Manifest` and `Entry` structs with YAML tags
   - Entry types: `file`, `directory`, `link`
   - Mode as string type to avoid YAML octal coercion
   - Per-file `updated` timestamp
-- [ ] `manifest/manifest.go`: `Load(path)` and `Save(path)` functions
+- [x] `manifest/manifest.go`: `Load(path)` and `Save(path)` functions
   - Save uses atomic write (write to `.tmp`, rename)
-- [ ] `manifest/manifest_test.go`: round-trip marshal/unmarshal, atomic save, entry type validation
+- [x] `manifest/manifest_test.go`: round-trip marshal/unmarshal, atomic save, entry type validation
 
 ## Step 3: Store Package
 
