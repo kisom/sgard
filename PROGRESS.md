@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Steps 1–4 complete. Ready for Step 5 (Checkpoint and Status).
+**Phase:** Steps 1–5 complete. Ready for Step 6 (Restore).
 
 **Last updated:** 2026-03-23
 
@@ -24,6 +24,9 @@ ARCHITECTURE.md for design details.
 - **Step 4: Garden Core — Init and Add** — `Garden` struct tying manifest +
   store, `Init()`, `Open()`, `Add()` handling files/dirs/symlinks, `HashFile()`,
   tilde path conversion, CLI `init` and `add` commands. 8 tests.
+- **Step 5: Checkpoint and Status** — `Checkpoint()` re-hashes all tracked files,
+  stores changed blobs, updates timestamps. `Status()` reports ok/modified/missing
+  per entry. CLI `checkpoint` (with `-m` flag) and `status` commands. 4 tests.
 
 ## In Progress
 
@@ -31,7 +34,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 5: Checkpoint and Status.
+Step 6: Restore.
 
 ## Known Issues / Decisions Deferred
 
@@ -49,3 +52,4 @@ Step 5: Checkpoint and Status.
 | 2026-03-23 | 2 | Manifest package complete. Structs, Load/Save with atomic write, full test suite. |
 | 2026-03-23 | 3 | Store package complete. Content-addressable blob store, 11 tests. |
 | 2026-03-23 | 4 | Garden core complete. Init, Open, Add with file/dir/symlink support, CLI commands. 8 tests. |
+| 2026-03-23 | 5 | Checkpoint and Status complete. Re-hash, store changed blobs, status reporting. 4 tests. |

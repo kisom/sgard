@@ -148,6 +148,127 @@ func (g *Garden) Add(paths []string) error {
 	return nil
 }
 
+// FileStatus reports the state of a tracked entry relative to the filesystem.
+type FileStatus struct {
+	Path  string // tilde path from manifest
+	State string // "ok", "modified", "missing"
+}
+
+// Checkpoint re-hashes all tracked files, stores any changed blobs, and
+// updates the manifest timestamps. The optional message is recorded in
+// the manifest.
+func (g *Garden) Checkpoint(message string) error {
+	now := time.Now().UTC()
+
+	for i := range g.manifest.Files {
+		entry := &g.manifest.Files[i]
+
+		abs, err := ExpandTildePath(entry.Path)
+		if err != nil {
+			return fmt.Errorf("expanding path %s: %w", entry.Path, err)
+		}
+
+		info, err := os.Lstat(abs)
+		if err != nil {
+			// File is missing — leave the manifest entry as-is so status
+			// can report it. Don't fail the whole checkpoint.
+			continue
+		}
+
+		entry.Mode = fmt.Sprintf("%04o", info.Mode().Perm())
+
+		switch entry.Type {
+		case "file":
+			data, err := os.ReadFile(abs)
+			if err != nil {
+				return fmt.Errorf("reading %s: %w", abs, err)
+			}
+			hash, err := g.store.Write(data)
+			if err != nil {
+				return fmt.Errorf("storing blob for %s: %w", abs, err)
+			}
+			if hash != entry.Hash {
+				entry.Hash = hash
+				entry.Updated = now
+			}
+
+		case "link":
+			target, err := os.Readlink(abs)
+			if err != nil {
+				return fmt.Errorf("reading symlink %s: %w", abs, err)
+			}
+			if target != entry.Target {
+				entry.Target = target
+				entry.Updated = now
+			}
+
+		case "directory":
+			// Nothing to hash; just update mode (already done above).
+		}
+	}
+
+	g.manifest.Updated = now
+	g.manifest.Message = message
+	if err := g.manifest.Save(g.manifestPath); err != nil {
+		return fmt.Errorf("saving manifest: %w", err)
+	}
+
+	return nil
+}
+
+// Status compares each tracked entry against the current filesystem state
+// and returns a status for each.
+func (g *Garden) Status() ([]FileStatus, error) {
+	var results []FileStatus
+
+	for i := range g.manifest.Files {
+		entry := &g.manifest.Files[i]
+
+		abs, err := ExpandTildePath(entry.Path)
+		if err != nil {
+			return nil, fmt.Errorf("expanding path %s: %w", entry.Path, err)
+		}
+
+		_, err = os.Lstat(abs)
+		if os.IsNotExist(err) {
+			results = append(results, FileStatus{Path: entry.Path, State: "missing"})
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("stat %s: %w", abs, err)
+		}
+
+		switch entry.Type {
+		case "file":
+			hash, err := HashFile(abs)
+			if err != nil {
+				return nil, fmt.Errorf("hashing %s: %w", abs, err)
+			}
+			if hash != entry.Hash {
+				results = append(results, FileStatus{Path: entry.Path, State: "modified"})
+			} else {
+				results = append(results, FileStatus{Path: entry.Path, State: "ok"})
+			}
+
+		case "link":
+			target, err := os.Readlink(abs)
+			if err != nil {
+				return nil, fmt.Errorf("reading symlink %s: %w", abs, err)
+			}
+			if target != entry.Target {
+				results = append(results, FileStatus{Path: entry.Path, State: "modified"})
+			} else {
+				results = append(results, FileStatus{Path: entry.Path, State: "ok"})
+			}
+
+		case "directory":
+			results = append(results, FileStatus{Path: entry.Path, State: "ok"})
+		}
+	}
+
+	return results, nil
+}
+
 // findEntry returns the entry for the given tilde path, or nil if not found.
 func (g *Garden) findEntry(tildePath string) *manifest.Entry {
 	for i := range g.manifest.Files {

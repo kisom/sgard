@@ -218,6 +218,179 @@ func TestHashFile(t *testing.T) {
 	}
 }
 
+func TestCheckpointDetectsChanges(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	testFile := filepath.Join(root, "testfile")
+	if err := os.WriteFile(testFile, []byte("original"), 0o644); err != nil {
+		t.Fatalf("writing test file: %v", err)
+	}
+
+	if err := g.Add([]string{testFile}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	origHash := g.manifest.Files[0].Hash
+
+	// Modify the file.
+	if err := os.WriteFile(testFile, []byte("modified"), 0o644); err != nil {
+		t.Fatalf("modifying test file: %v", err)
+	}
+
+	if err := g.Checkpoint("test checkpoint"); err != nil {
+		t.Fatalf("Checkpoint: %v", err)
+	}
+
+	if g.manifest.Files[0].Hash == origHash {
+		t.Error("checkpoint did not update hash for modified file")
+	}
+	if g.manifest.Message != "test checkpoint" {
+		t.Errorf("expected message 'test checkpoint', got %q", g.manifest.Message)
+	}
+
+	// Verify new blob exists in store.
+	if !g.store.Exists(g.manifest.Files[0].Hash) {
+		t.Error("new blob not found in store")
+	}
+
+	// Verify manifest persisted.
+	g2, err := Open(repoDir)
+	if err != nil {
+		t.Fatalf("re-Open: %v", err)
+	}
+	if g2.manifest.Files[0].Hash == origHash {
+		t.Error("persisted manifest still has old hash")
+	}
+}
+
+func TestCheckpointUnchangedFile(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	testFile := filepath.Join(root, "testfile")
+	if err := os.WriteFile(testFile, []byte("same"), 0o644); err != nil {
+		t.Fatalf("writing test file: %v", err)
+	}
+
+	if err := g.Add([]string{testFile}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	origHash := g.manifest.Files[0].Hash
+	origUpdated := g.manifest.Files[0].Updated
+
+	if err := g.Checkpoint(""); err != nil {
+		t.Fatalf("Checkpoint: %v", err)
+	}
+
+	if g.manifest.Files[0].Hash != origHash {
+		t.Error("hash should not change for unmodified file")
+	}
+	if !g.manifest.Files[0].Updated.Equal(origUpdated) {
+		t.Error("entry timestamp should not change for unmodified file")
+	}
+}
+
+func TestCheckpointMissingFileSkipped(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	testFile := filepath.Join(root, "testfile")
+	if err := os.WriteFile(testFile, []byte("data"), 0o644); err != nil {
+		t.Fatalf("writing test file: %v", err)
+	}
+
+	if err := g.Add([]string{testFile}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// Remove the file before checkpoint.
+	os.Remove(testFile)
+
+	// Checkpoint should not fail.
+	if err := g.Checkpoint(""); err != nil {
+		t.Fatalf("Checkpoint should not fail for missing file: %v", err)
+	}
+}
+
+func TestStatusReportsCorrectly(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	// Create and add two files.
+	okFile := filepath.Join(root, "okfile")
+	if err := os.WriteFile(okFile, []byte("unchanged"), 0o644); err != nil {
+		t.Fatalf("writing ok file: %v", err)
+	}
+	modFile := filepath.Join(root, "modfile")
+	if err := os.WriteFile(modFile, []byte("original"), 0o644); err != nil {
+		t.Fatalf("writing mod file: %v", err)
+	}
+	missingFile := filepath.Join(root, "missingfile")
+	if err := os.WriteFile(missingFile, []byte("will vanish"), 0o644); err != nil {
+		t.Fatalf("writing missing file: %v", err)
+	}
+
+	if err := g.Add([]string{okFile, modFile, missingFile}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// Modify one file, remove another.
+	if err := os.WriteFile(modFile, []byte("changed"), 0o644); err != nil {
+		t.Fatalf("modifying file: %v", err)
+	}
+	os.Remove(missingFile)
+
+	statuses, err := g.Status()
+	if err != nil {
+		t.Fatalf("Status: %v", err)
+	}
+
+	if len(statuses) != 3 {
+		t.Fatalf("expected 3 statuses, got %d", len(statuses))
+	}
+
+	stateMap := make(map[string]string)
+	for _, s := range statuses {
+		stateMap[s.Path] = s.State
+	}
+
+	okPath := toTildePath(okFile)
+	modPath := toTildePath(modFile)
+	missingPath := toTildePath(missingFile)
+
+	if stateMap[okPath] != "ok" {
+		t.Errorf("okfile: expected ok, got %s", stateMap[okPath])
+	}
+	if stateMap[modPath] != "modified" {
+		t.Errorf("modfile: expected modified, got %s", stateMap[modPath])
+	}
+	if stateMap[missingPath] != "missing" {
+		t.Errorf("missingfile: expected missing, got %s", stateMap[missingPath])
+	}
+}
+
 func TestExpandTildePath(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil {

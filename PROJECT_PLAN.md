@@ -54,10 +54,10 @@ Depends on Steps 2 and 3.
 
 Depends on Step 4.
 
-- [ ] `garden/garden.go`: `Checkpoint(message string) error` — re-hash all tracked files, store changed blobs, update manifest timestamps
-- [ ] `garden/garden.go`: `Status() ([]FileStatus, error)` — compare current hashes to manifest; report modified/missing/ok
-- [ ] `garden/garden_test.go`: checkpoint detects changed files, status reports correctly
-- [ ] Wire up CLI: `cmd/sgard/checkpoint.go`, `cmd/sgard/status.go`
+- [x] `garden/garden.go`: `Checkpoint(message string) error` — re-hash all tracked files, store changed blobs, update manifest timestamps
+- [x] `garden/garden.go`: `Status() ([]FileStatus, error)` — compare current hashes to manifest; report modified/missing/ok
+- [x] `garden/garden_test.go`: checkpoint detects changed files, status reports correctly
+- [x] Wire up CLI: `cmd/sgard/checkpoint.go`, `cmd/sgard/status.go`
 
 ## Step 6: Restore
 
