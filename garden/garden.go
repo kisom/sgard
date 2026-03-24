@@ -46,6 +46,11 @@ func Init(root string) (*Garden, error) {
 		return nil, fmt.Errorf("creating store: %w", err)
 	}
 
+	gitignorePath := filepath.Join(absRoot, ".gitignore")
+	if err := os.WriteFile(gitignorePath, []byte("blobs/\n"), 0o644); err != nil {
+		return nil, fmt.Errorf("creating .gitignore: %w", err)
+	}
+
 	clk := clockwork.NewRealClock()
 	m := manifest.NewWithTime(clk.Now().UTC())
 	if err := m.Save(manifestPath); err != nil {

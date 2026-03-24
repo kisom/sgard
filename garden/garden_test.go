@@ -25,6 +25,14 @@ func TestInitCreatesStructure(t *testing.T) {
 		t.Errorf("blobs/ not found: %v", err)
 	}
 
+	// .gitignore should exist and exclude blobs/
+	gitignore, err := os.ReadFile(filepath.Join(repoDir, ".gitignore"))
+	if err != nil {
+		t.Errorf(".gitignore not found: %v", err)
+	} else if string(gitignore) != "blobs/\n" {
+		t.Errorf(".gitignore content = %q, want %q", gitignore, "blobs/\n")
+	}
+
 	if g.manifest.Version != 1 {
 		t.Errorf("expected version 1, got %d", g.manifest.Version)
 	}
