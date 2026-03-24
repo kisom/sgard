@@ -1,9 +1,13 @@
 package garden
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/kisom/sgard/manifest"
 )
 
 func TestInitCreatesStructure(t *testing.T) {
@@ -616,6 +620,161 @@ func TestRestoreConfirmSkips(t *testing.T) {
 	}
 	if string(got) != "newer on disk" {
 		t.Error("file should not have been overwritten when confirm returns false")
+	}
+}
+
+func TestGetManifest(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	testFile := filepath.Join(root, "testfile")
+	if err := os.WriteFile(testFile, []byte("hello"), 0o644); err != nil {
+		t.Fatalf("writing test file: %v", err)
+	}
+
+	if err := g.Add([]string{testFile}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	m := g.GetManifest()
+	if m == nil {
+		t.Fatal("GetManifest returned nil")
+	}
+	if len(m.Files) != 1 {
+		t.Errorf("expected 1 entry, got %d", len(m.Files))
+	}
+}
+
+func TestBlobExists(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	testFile := filepath.Join(root, "testfile")
+	if err := os.WriteFile(testFile, []byte("blob exists test"), 0o644); err != nil {
+		t.Fatalf("writing test file: %v", err)
+	}
+
+	if err := g.Add([]string{testFile}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	hash := g.GetManifest().Files[0].Hash
+	if !g.BlobExists(hash) {
+		t.Error("BlobExists returned false for a stored blob")
+	}
+	if g.BlobExists("0000000000000000000000000000000000000000000000000000000000000000") {
+		t.Error("BlobExists returned true for a fake hash")
+	}
+}
+
+func TestReadBlob(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	content := []byte("read blob test content")
+	testFile := filepath.Join(root, "testfile")
+	if err := os.WriteFile(testFile, content, 0o644); err != nil {
+		t.Fatalf("writing test file: %v", err)
+	}
+
+	if err := g.Add([]string{testFile}); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	hash := g.GetManifest().Files[0].Hash
+	got, err := g.ReadBlob(hash)
+	if err != nil {
+		t.Fatalf("ReadBlob: %v", err)
+	}
+	if string(got) != string(content) {
+		t.Errorf("ReadBlob content = %q, want %q", got, content)
+	}
+}
+
+func TestWriteBlob(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	data := []byte("write blob test data")
+	hash, err := g.WriteBlob(data)
+	if err != nil {
+		t.Fatalf("WriteBlob: %v", err)
+	}
+
+	// Verify the hash is correct SHA-256.
+	sum := sha256.Sum256(data)
+	wantHash := hex.EncodeToString(sum[:])
+	if hash != wantHash {
+		t.Errorf("WriteBlob hash = %s, want %s", hash, wantHash)
+	}
+
+	if !g.BlobExists(hash) {
+		t.Error("BlobExists returned false after WriteBlob")
+	}
+}
+
+func TestReplaceManifest(t *testing.T) {
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+
+	g, err := Init(repoDir)
+	if err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	// Create a new manifest with a custom entry.
+	newManifest := manifest.New()
+	newManifest.Files = append(newManifest.Files, manifest.Entry{
+		Path: "~/replaced-file",
+		Type: "file",
+		Hash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Mode: "0644",
+	})
+
+	if err := g.ReplaceManifest(newManifest); err != nil {
+		t.Fatalf("ReplaceManifest: %v", err)
+	}
+
+	// Verify in-memory manifest was updated.
+	m := g.GetManifest()
+	if len(m.Files) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(m.Files))
+	}
+	if m.Files[0].Path != "~/replaced-file" {
+		t.Errorf("expected path ~/replaced-file, got %s", m.Files[0].Path)
+	}
+
+	// Verify persistence by re-opening.
+	g2, err := Open(repoDir)
+	if err != nil {
+		t.Fatalf("re-Open: %v", err)
+	}
+	m2 := g2.GetManifest()
+	if len(m2.Files) != 1 {
+		t.Fatalf("persisted manifest has %d entries, want 1", len(m2.Files))
+	}
+	if m2.Files[0].Path != "~/replaced-file" {
+		t.Errorf("persisted entry path = %s, want ~/replaced-file", m2.Files[0].Path)
 	}
 }
 

@@ -98,6 +98,35 @@ func (g *Garden) SetClock(c clockwork.Clock) {
 	g.clock = c
 }
 
+// GetManifest returns the current manifest.
+func (g *Garden) GetManifest() *manifest.Manifest {
+	return g.manifest
+}
+
+// BlobExists reports whether a blob with the given hash exists in the store.
+func (g *Garden) BlobExists(hash string) bool {
+	return g.store.Exists(hash)
+}
+
+// ReadBlob returns the contents of the blob with the given hash.
+func (g *Garden) ReadBlob(hash string) ([]byte, error) {
+	return g.store.Read(hash)
+}
+
+// WriteBlob writes data to the blob store and returns the hash.
+func (g *Garden) WriteBlob(data []byte) (string, error) {
+	return g.store.Write(data)
+}
+
+// ReplaceManifest atomically replaces the current manifest.
+func (g *Garden) ReplaceManifest(m *manifest.Manifest) error {
+	if err := m.Save(g.manifestPath); err != nil {
+		return fmt.Errorf("saving manifest: %w", err)
+	}
+	g.manifest = m
+	return nil
+}
+
 // Add tracks new files, directories, or symlinks. Each path is resolved
 // to an absolute path, inspected for its type, and added to the manifest.
 // Regular files are hashed and stored in the blob store.
