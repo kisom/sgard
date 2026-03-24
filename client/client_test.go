@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"errors"
 	"net"
 	"os"
@@ -12,6 +14,7 @@ import (
 	"github.com/kisom/sgard/garden"
 	"github.com/kisom/sgard/server"
 	"github.com/kisom/sgard/sgardpb"
+	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -204,5 +207,102 @@ func TestPrune(t *testing.T) {
 	}
 	if removed != 1 {
 		t.Errorf("removed %d blobs, want 1", removed)
+	}
+}
+
+func TestAuthIntegration(t *testing.T) {
+	// Generate an ed25519 key pair.
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("generating key: %v", err)
+	}
+	signer, err := ssh.NewSignerFromKey(priv)
+	if err != nil {
+		t.Fatalf("creating signer: %v", err)
+	}
+
+	serverDir := t.TempDir()
+	serverGarden, err := garden.Init(serverDir)
+	if err != nil {
+		t.Fatalf("init server garden: %v", err)
+	}
+
+	// Set up server with auth interceptor.
+	auth := server.NewAuthInterceptorFromKeys([]ssh.PublicKey{signer.PublicKey()})
+	lis := bufconn.Listen(bufSize)
+	srv := grpc.NewServer(
+		grpc.UnaryInterceptor(auth.UnaryInterceptor()),
+		grpc.StreamInterceptor(auth.StreamInterceptor()),
+	)
+	sgardpb.RegisterGardenSyncServer(srv, server.New(serverGarden))
+	t.Cleanup(func() { srv.Stop() })
+	go func() { _ = srv.Serve(lis) }()
+
+	// Client with SSH credentials.
+	creds := NewSSHCredentials(signer)
+	conn, err := grpc.NewClient("passthrough:///bufconn",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return lis.Dial()
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithPerRPCCredentials(creds),
+	)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+
+	c := New(conn)
+
+	// Authenticated request should succeed.
+	_, err = c.Pull(context.Background(), serverGarden)
+	if err != nil {
+		t.Fatalf("authenticated Pull should succeed: %v", err)
+	}
+}
+
+func TestAuthIntegrationRejectsUnauthenticated(t *testing.T) {
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("generating key: %v", err)
+	}
+	signer, err := ssh.NewSignerFromKey(priv)
+	if err != nil {
+		t.Fatalf("creating signer: %v", err)
+	}
+
+	serverDir := t.TempDir()
+	serverGarden, err := garden.Init(serverDir)
+	if err != nil {
+		t.Fatalf("init server garden: %v", err)
+	}
+
+	auth := server.NewAuthInterceptorFromKeys([]ssh.PublicKey{signer.PublicKey()})
+	lis := bufconn.Listen(bufSize)
+	srv := grpc.NewServer(
+		grpc.UnaryInterceptor(auth.UnaryInterceptor()),
+		grpc.StreamInterceptor(auth.StreamInterceptor()),
+	)
+	sgardpb.RegisterGardenSyncServer(srv, server.New(serverGarden))
+	t.Cleanup(func() { srv.Stop() })
+	go func() { _ = srv.Serve(lis) }()
+
+	// Client WITHOUT credentials.
+	conn, err := grpc.NewClient("passthrough:///bufconn",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return lis.Dial()
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+
+	c := New(conn)
+
+	_, err = c.Pull(context.Background(), serverGarden)
+	if err == nil {
+		t.Fatal("unauthenticated Pull should fail")
 	}
 }

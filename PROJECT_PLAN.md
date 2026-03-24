@@ -148,10 +148,11 @@ Depends on Step 12.
 
 ### Step 14: SSH Key Auth
 
-- [ ] `server/auth.go`: AuthInterceptor, parse authorized_keys, verify SSH signatures
-- [ ] `client/auth.go`: LoadSigner (ssh-agent or key file), PerRPCCredentials
-- [ ] `server/auth_test.go`: in-memory ed25519 key pair, reject unauthenticated
-- [ ] `client/auth_test.go`: metadata generation test
+- [x] `server/auth.go`: AuthInterceptor, parse authorized_keys, verify SSH signatures
+- [x] `client/auth.go`: LoadSigner (ssh-agent or key file), SSHCredentials (PerRPCCredentials)
+- [x] `server/auth_test.go`: valid key, reject unauthenticated, reject unauthorized key, reject expired timestamp
+- [x] `client/auth_test.go`: metadata generation, no-transport-security
+- [x] Integration tests: authenticated push/pull succeeds, unauthenticated is rejected
 
 ### Step 15: CLI Wiring + Prune
 
