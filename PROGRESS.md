@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Step 2 complete. Ready for Step 3 (Store Package) and then Step 4.
+**Phase:** Steps 2 & 3 complete. Ready for Step 4 (Garden Core).
 
 **Last updated:** 2026-03-23
 
@@ -17,8 +17,10 @@ ARCHITECTURE.md for design details.
   initialized Go module, added cobra + yaml.v3 deps, created package dirs,
   set up cobra root command with `--repo` flag.
 - **Step 2: Manifest Package** — `Manifest` and `Entry` structs with YAML tags,
-  `New()`, `Load(path)`, and `Save(path)` with atomic write. Tests cover
-  round-trip, atomic save, entry types, nonexistent file, and empty manifest.
+  `New()`, `Load(path)`, and `Save(path)` with atomic write. 5 tests.
+- **Step 3: Store Package** — content-addressable blob store with SHA-256 keying.
+  `New()`, `Write()`, `Read()`, `Exists()`, `Delete()` with atomic writes,
+  hash validation, and two-level directory layout. 11 tests.
 
 ## In Progress
 
@@ -26,7 +28,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 3 (Store Package), then Step 4 (Garden Core).
+Step 4: Garden Core — Init and Add. Ties manifest + store together.
 
 ## Known Issues / Decisions Deferred
 
@@ -42,3 +44,4 @@ Step 3 (Store Package), then Step 4 (Garden Core).
 | 2026-03-23 | — | Design phase complete. ARCHITECTURE.md and PROJECT_PLAN.md written. |
 | 2026-03-23 | 1 | Scaffolding complete. Old C++ removed, Go module initialized, cobra root command. |
 | 2026-03-23 | 2 | Manifest package complete. Structs, Load/Save with atomic write, full test suite. |
+| 2026-03-23 | 3 | Store package complete. Content-addressable blob store, 11 tests. |

@@ -30,12 +30,12 @@ Remove old C++ source files and set up the Go project.
 
 *Can be done in parallel with Step 2.*
 
-- [ ] `store/store.go`: `Store` struct with `root` path
-- [ ] `store/store.go`: `Write(data) (hash, error)` — hash content, write to `blobs/XX/YY/<hash>`
-- [ ] `store/store.go`: `Read(hash) ([]byte, error)` — read blob by hash
-- [ ] `store/store.go`: `Exists(hash) bool` — check if blob exists
-- [ ] `store/store.go`: `Delete(hash) error` — remove a blob
-- [ ] `store/store_test.go`: write/read round-trip, integrity check, missing blob error
+- [x] `store/store.go`: `Store` struct with `root` path
+- [x] `store/store.go`: `Write(data) (hash, error)` — hash content, write to `blobs/XX/YY/<hash>`
+- [x] `store/store.go`: `Read(hash) ([]byte, error)` — read blob by hash
+- [x] `store/store.go`: `Exists(hash) bool` — check if blob exists
+- [x] `store/store.go`: `Delete(hash) error` — remove a blob
+- [x] `store/store_test.go`: write/read round-trip, integrity check, missing blob error
 
 ## Step 4: Garden Core — Init and Add
 
