@@ -45,6 +45,9 @@ Step 7: Remaining Commands (remove, verify, list, diff).
   replication is deferred to a future phase.
 - **gRPC remote mode**: Phase 2. Package structure is designed to accommodate
   it (garden core separates logic from CLI wiring).
+- **Clock abstraction**: Inject a clock interface (e.g. `jonboulle/clockwork`)
+  into Garden instead of calling `time.Now()` directly. Improves timestamp
+  test determinism. Deferred to Step 8 (Polish).
 
 ## Change Log
 
