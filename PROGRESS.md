@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 4 in progress. Steps 21–24 complete, ready for Step 25.
+**Phase:** Phase 4 in progress. Steps 21–25 complete, ready for Step 26.
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 25: Real FIDO2 Hardware Binding.
+Step 26: Test Cleanup.
 
 ## Known Issues / Decisions Deferred
 
@@ -88,3 +88,4 @@ Step 25: Real FIDO2 Hardware Binding.
 | 2026-03-24 | 22 | Shell completion: cobra built-in, README docs for bash/zsh/fish. |
 | 2026-03-24 | 23 | TLS transport: sgardd --tls-cert/--tls-key, sgard --tls/--tls-ca, 2 integration tests. |
 | 2026-03-24 | 24 | DEK rotation: RotateDEK re-encrypts all blobs, re-wraps all slots, CLI command, 4 tests. |
+| 2026-03-24 | 25 | Real FIDO2: go-libfido2 bindings, build tag gating, CLI wiring, nix sgard-fido2 package. |

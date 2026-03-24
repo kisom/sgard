@@ -36,8 +36,16 @@ var encryptInitCmd = &cobra.Command{
 		fmt.Println("Encryption initialized with passphrase slot.")
 
 		if fido2InitFlag {
-			fmt.Println("FIDO2 support requires a hardware device implementation.")
-			fmt.Println("Run 'sgard encrypt add-fido2' when a FIDO2 device is available.")
+			device := garden.DetectHardwareFIDO2(fido2PinFlag)
+			if device == nil {
+				fmt.Println("No FIDO2 device detected. Run 'sgard encrypt add-fido2' when one is connected.")
+			} else {
+				fmt.Println("Touch your FIDO2 device to register...")
+				if err := g.AddFIDO2Slot(device, fido2LabelFlag); err != nil {
+					return fmt.Errorf("adding FIDO2 slot: %w", err)
+				}
+				fmt.Println("FIDO2 slot added.")
+			}
 		}
 
 		return nil
@@ -59,13 +67,22 @@ var addFido2Cmd = &cobra.Command{
 			return fmt.Errorf("encryption not initialized; run sgard encrypt init first")
 		}
 
-		if err := g.UnlockDEK(promptPassphrase); err != nil {
+		if err := unlockDEK(g); err != nil {
 			return err
 		}
 
-		// Real FIDO2 device implementation would go here.
-		// For now, this is a placeholder that explains the requirement.
-		return fmt.Errorf("FIDO2 hardware support not yet implemented; requires libfido2 binding")
+		device := garden.DetectHardwareFIDO2(fido2PinFlag)
+		if device == nil {
+			return fmt.Errorf("no FIDO2 device detected; connect a FIDO2 key and try again")
+		}
+
+		fmt.Println("Touch your FIDO2 device to register...")
+		if err := g.AddFIDO2Slot(device, fido2LabelFlag); err != nil {
+			return err
+		}
+
+		fmt.Println("FIDO2 slot added.")
+		return nil
 	},
 }
 
@@ -130,9 +147,8 @@ var changePassphraseCmd = &cobra.Command{
 			return fmt.Errorf("encryption not initialized")
 		}
 
-		// Unlock with current passphrase.
-		fmt.Println("Enter current passphrase:")
-		if err := g.UnlockDEK(promptPassphrase); err != nil {
+		// Unlock with current credentials.
+		if err := unlockDEK(g); err != nil {
 			return err
 		}
 
@@ -166,15 +182,15 @@ var rotateDEKCmd = &cobra.Command{
 			return fmt.Errorf("encryption not initialized")
 		}
 
-		// Unlock with current passphrase.
-		fmt.Println("Enter passphrase to unlock:")
-		if err := g.UnlockDEK(promptPassphrase); err != nil {
+		// Unlock with current credentials.
+		if err := unlockDEK(g); err != nil {
 			return err
 		}
 
 		// Rotate — re-prompts for passphrase to re-wrap slot.
 		fmt.Println("Enter passphrase to re-wrap DEK:")
-		if err := g.RotateDEK(promptPassphrase); err != nil {
+		device := garden.DetectHardwareFIDO2(fido2PinFlag)
+		if err := g.RotateDEK(promptPassphrase, device); err != nil {
 			return err
 		}
 
@@ -184,7 +200,7 @@ var rotateDEKCmd = &cobra.Command{
 }
 
 func init() {
-	encryptInitCmd.Flags().BoolVar(&fido2InitFlag, "fido2", false, "also set up FIDO2 (placeholder)")
+	encryptInitCmd.Flags().BoolVar(&fido2InitFlag, "fido2", false, "also register a FIDO2 hardware key")
 	addFido2Cmd.Flags().StringVar(&fido2LabelFlag, "label", "", "slot label (default: fido2/<hostname>)")
 
 	encryptCmd.AddCommand(encryptInitCmd)

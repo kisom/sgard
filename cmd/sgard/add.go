@@ -30,7 +30,7 @@ var addCmd = &cobra.Command{
 			if !g.HasEncryption() {
 				return fmt.Errorf("encryption not initialized; run sgard encrypt init first")
 			}
-			if err := g.UnlockDEK(promptPassphrase); err != nil {
+			if err := unlockDEK(g); err != nil {
 				return err
 			}
 		}

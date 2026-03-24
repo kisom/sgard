@@ -21,6 +21,12 @@ var restoreCmd = &cobra.Command{
 			return err
 		}
 
+		if g.HasEncryption() && g.NeedsDEK(g.List()) {
+			if err := unlockDEK(g); err != nil {
+				return err
+			}
+		}
+
 		confirm := func(path string) bool {
 			fmt.Printf("Overwrite %s? [y/N] ", path)
 			scanner := bufio.NewScanner(os.Stdin)

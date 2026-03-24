@@ -116,6 +116,7 @@ func main() {
 	rootCmd.PersistentFlags().StringVar(&sshKeyFlag, "ssh-key", "", "path to SSH private key")
 	rootCmd.PersistentFlags().BoolVar(&tlsFlag, "tls", false, "use TLS for remote connection")
 	rootCmd.PersistentFlags().StringVar(&tlsCAFlag, "tls-ca", "", "path to CA certificate for TLS verification")
+	rootCmd.PersistentFlags().StringVar(&fido2PinFlag, "fido2-pin", "", "PIN for FIDO2 device (if PIN-protected)")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -17,6 +17,12 @@ var diffCmd = &cobra.Command{
 			return err
 		}
 
+		if g.HasEncryption() && g.NeedsDEK(g.List()) {
+			if err := unlockDEK(g); err != nil {
+				return err
+			}
+		}
+
 		d, err := g.Diff(args[0])
 		if err != nil {
 			return err

@@ -18,6 +18,12 @@ var checkpointCmd = &cobra.Command{
 			return err
 		}
 
+		if g.HasEncryption() && g.NeedsDEK(g.List()) {
+			if err := unlockDEK(g); err != nil {
+				return err
+			}
+		}
+
 		if err := g.Checkpoint(checkpointMessage); err != nil {
 			return err
 		}

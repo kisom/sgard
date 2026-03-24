@@ -577,6 +577,23 @@ Both flags must be specified together on the server side; on the client
 side `--tls` alone uses the system trust store, and `--tls-ca` adds a
 custom root.
 
+### FIDO2 Hardware Support
+
+Real FIDO2 hardware support uses `go-libfido2` (CGo bindings to
+Yubico's libfido2 C library). It is gated behind the `fido2` build
+tag to avoid requiring CGo and libfido2 for users who don't need it:
+
+- `go build ./...` — default build, no FIDO2 hardware support
+- `go build -tags fido2 ./...` — links against libfido2 for real keys
+
+The implementation (`garden/fido2_hardware.go`) wraps
+`libfido2.Device.MakeCredential` and `Assertion` with the
+`HMACSecretExtension` to derive 32-byte HMAC secrets from hardware
+keys. A `--fido2-pin` flag is available for PIN-protected devices.
+
+The Nix flake provides two packages: `sgard` (default, no CGo) and
+`sgard-fido2` (links libfido2).
+
 ### DEK Rotation
 
 `sgard encrypt rotate-dek` generates a new DEK, re-encrypts all
@@ -625,8 +642,10 @@ sgard/
 
   garden/                 # Core business logic — one file per operation
     garden.go             # Garden struct, Init, Open, Add, Checkpoint, Status, accessors
-    encrypt.go            # EncryptInit, UnlockDEK, encrypt/decrypt blobs, slot management
+    encrypt.go            # EncryptInit, UnlockDEK, RotateDEK, encrypt/decrypt blobs, slot mgmt
     encrypt_fido2.go      # FIDO2Device interface, AddFIDO2Slot, unlock resolution
+    fido2_hardware.go     # Real FIDO2 via go-libfido2 (//go:build fido2)
+    fido2_nohardware.go   # Stub returning nil (//go:build !fido2)
     restore.go mirror.go prune.go remove.go verify.go list.go diff.go
     hasher.go             # SHA-256 file hashing
 

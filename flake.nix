@@ -15,16 +15,36 @@
         packages = {
           sgard = pkgs.buildGoModule {
             pname = "sgard";
-            version = "2.0.0";
+            version = "2.1.0";
             src = pkgs.lib.cleanSource ./.;
             subPackages = [ "cmd/sgard" "cmd/sgardd" ];
 
-            vendorHash = "sha256-0YpP1YfpAIAgY8k+7DlWosYN6MT5a2KLtNhQFvKT7pM=";
+            vendorHash = "sha256-0aGo5EbvPWt9Oflq+GTq8nEBUWZj3O5Ni4Qwd5EBa7Y=";
 
             ldflags = [ "-s" "-w" ];
 
             meta = {
               description = "Shimmering Clarity Gardener: dotfile management";
+              mainProgram = "sgard";
+            };
+          };
+
+          sgard-fido2 = pkgs.buildGoModule {
+            pname = "sgard-fido2";
+            version = "2.1.0";
+            src = pkgs.lib.cleanSource ./.;
+            subPackages = [ "cmd/sgard" "cmd/sgardd" ];
+
+            vendorHash = "sha256-LSz15iFsP4N3Cif1PFHEKg3udeqH/9WQQbZ50sxtWTk=";
+
+            buildInputs = [ pkgs.libfido2 ];
+            nativeBuildInputs = [ pkgs.pkg-config ];
+            tags = [ "fido2" ];
+
+            ldflags = [ "-s" "-w" ];
+
+            meta = {
+              description = "Shimmering Clarity Gardener: dotfile management (with FIDO2 hardware support)";
               mainProgram = "sgard";
             };
           };
@@ -39,6 +59,8 @@
             protobuf
             protoc-gen-go
             protoc-gen-go-grpc
+            libfido2
+            pkg-config
           ];
         };
       }

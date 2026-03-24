@@ -22,11 +22,13 @@ Module: `github.com/kisom/sgard`. Author: K. Isom <kyle@imap.cc>.
 
 ```bash
 go build ./...                   # both sgard and sgardd
+go build -tags fido2 ./...       # with real FIDO2 hardware support (requires libfido2)
 ```
 
 Nix:
 ```bash
-nix build .#sgard                # builds both binaries
+nix build .#sgard                # builds both binaries (no CGo)
+nix build .#sgard-fido2          # with FIDO2 hardware support (links libfido2)
 ```
 
 Run tests:
@@ -53,13 +55,14 @@ make proto
 - `google.golang.org/protobuf` — protobuf runtime
 - `golang.org/x/crypto` — SSH key auth (ssh, ssh/agent), Argon2id, XChaCha20-Poly1305
 - `github.com/golang-jwt/jwt/v5` — JWT token auth
+- `github.com/keys-pub/go-libfido2` — FIDO2 hardware key support (build tag `fido2`, requires libfido2)
 
 ## Package Structure
 
 ```
 cmd/sgard/    CLI entry point (cobra commands, pure wiring)
 cmd/sgardd/   gRPC server daemon
-garden/       Core business logic (Garden struct, encryption via encrypt.go/encrypt_fido2.go)
+garden/       Core business logic (Garden struct, encryption, FIDO2 hardware via build tags)
 manifest/     YAML manifest parsing (Manifest/Entry structs, Load/Save)
 store/        Content-addressable blob storage (SHA-256 keyed)
 server/       gRPC server (RPC handlers, JWT/SSH auth interceptor, proto conversion)

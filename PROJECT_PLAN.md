@@ -252,11 +252,13 @@ Depends on Steps 17, 18.
 
 ### Step 25: Real FIDO2 Hardware Binding
 
-- [ ] Evaluate approach: libfido2 CGo bindings vs subprocess (`fido2-token`/`fido2-cred`)
-- [ ] Implement real `FIDO2Device` satisfying the existing interface
-- [ ] `cmd/sgard/encrypt.go`: wire real device into `add-fido2` and unlock resolution
-- [ ] Build tag or runtime detection for FIDO2 availability
-- [ ] Tests: skip on CI without hardware, manual test instructions
+- [x] Evaluate approach: go-libfido2 CGo bindings (keys-pub/go-libfido2 v1.5.3)
+- [x] `garden/fido2_hardware.go`: HardwareFIDO2 implementing FIDO2Device via libfido2 (`//go:build fido2`)
+- [x] `garden/fido2_nohardware.go`: stub returning nil (`//go:build !fido2`)
+- [x] `cmd/sgard/fido2.go`: unlockDEK helper, --fido2-pin flag
+- [x] `cmd/sgard/encrypt.go`: add-fido2 uses real hardware, encrypt init --fido2 registers slot, all unlock calls use FIDO2-first resolution
+- [x] `flake.nix`: sgard-fido2 package variant, libfido2+pkg-config in devShell
+- [x] Tests: existing mock-based tests still pass; hardware tests require manual testing with a FIDO2 key
 
 ### Step 26: Test Cleanup
 

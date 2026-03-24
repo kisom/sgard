@@ -224,6 +224,22 @@ is wrapped by a passphrase-derived key (Argon2id). FIDO2 hardware keys
 are also supported as an alternative KEK source — sgard tries FIDO2
 first and falls back to passphrase automatically.
 
+### FIDO2 hardware keys
+
+Build with `-tags fido2` (requires libfido2) to enable real hardware
+key support, or use `nix build .#sgard-fido2`:
+
+```sh
+# Register a FIDO2 key (touch required)
+sgard encrypt add-fido2
+
+# With a PIN-protected device
+sgard encrypt add-fido2 --fido2-pin 1234
+
+# Unlock is automatic — FIDO2 is tried first, passphrase as fallback
+sgard restore   # touch your key when prompted
+```
+
 The encryption config (wrapped DEKs, salts) lives in the manifest, so
 it syncs with push/pull. The server never has the DEK.
 
