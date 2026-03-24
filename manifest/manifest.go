@@ -30,7 +30,11 @@ type Manifest struct {
 
 // New creates a new empty manifest with Version 1 and timestamps set to now.
 func New() *Manifest {
-	now := time.Now().UTC()
+	return NewWithTime(time.Now().UTC())
+}
+
+// NewWithTime creates a new empty manifest with the given timestamp.
+func NewWithTime(now time.Time) *Manifest {
 	return &Manifest{
 		Version: 1,
 		Created: now,
@@ -72,18 +76,18 @@ func (m *Manifest) Save(path string) error {
 	tmpName := tmp.Name()
 
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		os.Remove(tmpName)
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
 		return fmt.Errorf("writing temp file: %w", err)
 	}
 
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmpName)
+		_ = os.Remove(tmpName)
 		return fmt.Errorf("closing temp file: %w", err)
 	}
 
 	if err := os.Rename(tmpName, path); err != nil {
-		os.Remove(tmpName)
+		_ = os.Remove(tmpName)
 		return fmt.Errorf("renaming temp file: %w", err)
 	}
 

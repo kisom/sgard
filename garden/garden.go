@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jonboulle/clockwork"
 	"github.com/kisom/sgard/manifest"
 	"github.com/kisom/sgard/store"
 )
@@ -20,6 +21,7 @@ type Garden struct {
 	store        *store.Store
 	root         string // repository root directory
 	manifestPath string // path to manifest.yaml
+	clock        clockwork.Clock
 }
 
 // Init creates a new sgard repository at root. It creates the directory
@@ -44,7 +46,8 @@ func Init(root string) (*Garden, error) {
 		return nil, fmt.Errorf("creating store: %w", err)
 	}
 
-	m := manifest.New()
+	clk := clockwork.NewRealClock()
+	m := manifest.NewWithTime(clk.Now().UTC())
 	if err := m.Save(manifestPath); err != nil {
 		return nil, fmt.Errorf("saving initial manifest: %w", err)
 	}
@@ -54,6 +57,7 @@ func Init(root string) (*Garden, error) {
 		store:        s,
 		root:         absRoot,
 		manifestPath: manifestPath,
+		clock:        clk,
 	}, nil
 }
 
@@ -80,14 +84,20 @@ func Open(root string) (*Garden, error) {
 		store:        s,
 		root:         absRoot,
 		manifestPath: manifestPath,
+		clock:        clockwork.NewRealClock(),
 	}, nil
+}
+
+// SetClock replaces the clock used for timestamps. Intended for testing.
+func (g *Garden) SetClock(c clockwork.Clock) {
+	g.clock = c
 }
 
 // Add tracks new files, directories, or symlinks. Each path is resolved
 // to an absolute path, inspected for its type, and added to the manifest.
 // Regular files are hashed and stored in the blob store.
 func (g *Garden) Add(paths []string) error {
-	now := time.Now().UTC()
+	now := g.clock.Now().UTC()
 
 	for _, p := range paths {
 		abs, err := filepath.Abs(p)
@@ -159,7 +169,7 @@ type FileStatus struct {
 // updates the manifest timestamps. The optional message is recorded in
 // the manifest.
 func (g *Garden) Checkpoint(message string) error {
-	now := time.Now().UTC()
+	now := g.clock.Now().UTC()
 
 	for i := range g.manifest.Files {
 		entry := &g.manifest.Files[i]
@@ -359,7 +369,7 @@ func (g *Garden) restoreFile(abs string, entry *manifest.Entry) error {
 
 func restoreLink(abs string, entry *manifest.Entry) error {
 	// Remove existing file/link at the target path so we can create the symlink.
-	os.Remove(abs)
+	_ = os.Remove(abs)
 
 	if err := os.Symlink(entry.Target, abs); err != nil {
 		return fmt.Errorf("creating symlink %s -> %s: %w", abs, entry.Target, err)

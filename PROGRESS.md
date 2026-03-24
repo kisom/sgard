@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Steps 1–7 complete. Ready for Step 8 (Polish).
+**Phase:** Phase 1 complete (Steps 1–8). All local commands implemented.
 
 **Last updated:** 2026-03-23
 
@@ -33,6 +33,8 @@ ARCHITECTURE.md for design details.
 - **Step 7: Remaining Commands** — Remove (2 tests), Verify (3 tests), List
   (2 tests), Diff (3 tests). Each in its own file to enable parallel
   development. All CLI commands wired up.
+- **Step 8: Polish** — golangci-lint config, all lint issues fixed, clockwork
+  clock abstraction injected into Garden, e2e lifecycle test, docs updated.
 
 ## In Progress
 
@@ -40,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Step 8: Polish (golangci-lint, clock abstraction, e2e test, doc updates).
+Phase 1 is complete. Future work: blob durability, gRPC remote mode.
 
 ## Known Issues / Decisions Deferred
 
@@ -48,9 +50,8 @@ Step 8: Polish (golangci-lint, clock abstraction, e2e test, doc updates).
   replication is deferred to a future phase.
 - **gRPC remote mode**: Phase 2. Package structure is designed to accommodate
   it (garden core separates logic from CLI wiring).
-- **Clock abstraction**: Inject a clock interface (e.g. `jonboulle/clockwork`)
-  into Garden instead of calling `time.Now()` directly. Improves timestamp
-  test determinism. Deferred to Step 8 (Polish).
+- **Clock abstraction**: Done — `jonboulle/clockwork` injected. E2e test
+  uses fake clock for deterministic timestamps.
 
 ## Change Log
 
@@ -64,3 +65,4 @@ Step 8: Polish (golangci-lint, clock abstraction, e2e test, doc updates).
 | 2026-03-23 | 5 | Checkpoint and Status complete. Re-hash, store changed blobs, status reporting. 4 tests. |
 | 2026-03-23 | 6 | Restore complete. Selective paths, force/confirm, timestamp logic, symlinks, permissions. 6 tests. |
 | 2026-03-23 | 7 | Remaining commands complete. Remove, Verify, List, Diff — 10 tests across 4 parallel units. |
+| 2026-03-23 | 8 | Polish complete. golangci-lint, clockwork, e2e test, doc updates. |

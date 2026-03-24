@@ -29,10 +29,16 @@ Run tests:
 go test ./...
 ```
 
+Lint:
+```bash
+golangci-lint run ./...
+```
+
 ## Dependencies
 
 - `gopkg.in/yaml.v3` — manifest serialization
 - `github.com/spf13/cobra` — CLI framework
+- `github.com/jonboulle/clockwork` — injectable clock for deterministic tests
 
 ## Package Structure
 
@@ -47,8 +53,5 @@ Key rule: all logic lives in `garden/`. The `cmd/` layer only parses flags
 and calls `Garden` methods. This enables the future gRPC server to reuse
 the same logic with zero duplication.
 
-## Legacy Files
-
-Old C++ and proto source files may still be present. They are retained in
-git history for reference and should be removed as part of the Go rewrite
-(see PROJECT_PLAN.md Step 1).
+Each garden operation (remove, verify, list, diff) lives in its own file
+(`garden/<op>.go`) to minimize merge conflicts during parallel development.

@@ -321,7 +321,7 @@ func TestCheckpointMissingFileSkipped(t *testing.T) {
 	}
 
 	// Remove the file before checkpoint.
-	os.Remove(testFile)
+	_ = os.Remove(testFile)
 
 	// Checkpoint should not fail.
 	if err := g.Checkpoint(""); err != nil {
@@ -360,7 +360,7 @@ func TestStatusReportsCorrectly(t *testing.T) {
 	if err := os.WriteFile(modFile, []byte("changed"), 0o644); err != nil {
 		t.Fatalf("modifying file: %v", err)
 	}
-	os.Remove(missingFile)
+	_ = os.Remove(missingFile)
 
 	statuses, err := g.Status()
 	if err != nil {
@@ -412,7 +412,7 @@ func TestRestoreFile(t *testing.T) {
 	}
 
 	// Delete the file, then restore it.
-	os.Remove(testFile)
+	_ = os.Remove(testFile)
 
 	if err := g.Restore(nil, true, nil); err != nil {
 		t.Fatalf("Restore: %v", err)
@@ -445,7 +445,7 @@ func TestRestorePermissions(t *testing.T) {
 		t.Fatalf("Add: %v", err)
 	}
 
-	os.Remove(testFile)
+	_ = os.Remove(testFile)
 
 	if err := g.Restore(nil, true, nil); err != nil {
 		t.Fatalf("Restore: %v", err)
@@ -482,7 +482,7 @@ func TestRestoreSymlink(t *testing.T) {
 		t.Fatalf("Add: %v", err)
 	}
 
-	os.Remove(link)
+	_ = os.Remove(link)
 
 	if err := g.Restore(nil, true, nil); err != nil {
 		t.Fatalf("Restore: %v", err)
@@ -520,7 +520,7 @@ func TestRestoreCreatesParentDirs(t *testing.T) {
 	}
 
 	// Remove the entire directory tree.
-	os.RemoveAll(filepath.Join(root, "a"))
+	_ = os.RemoveAll(filepath.Join(root, "a"))
 
 	if err := g.Restore(nil, true, nil); err != nil {
 		t.Fatalf("Restore: %v", err)
@@ -557,8 +557,8 @@ func TestRestoreSelectivePaths(t *testing.T) {
 		t.Fatalf("Add: %v", err)
 	}
 
-	os.Remove(file1)
-	os.Remove(file2)
+	_ = os.Remove(file1)
+	_ = os.Remove(file2)
 
 	// Restore only file1.
 	if err := g.Restore([]string{file1}, true, nil); err != nil {

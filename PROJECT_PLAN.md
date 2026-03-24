@@ -86,11 +86,11 @@ Depends on Step 5.
 
 ## Step 8: Polish
 
-- [ ] Lint setup (golangci-lint config)
-- [ ] Clock abstraction: inject `jonboulle/clockwork` into Garden for deterministic timestamp tests
-- [ ] End-to-end test: init → add → checkpoint → modify file → status → restore → verify
-- [ ] Ensure `go vet ./...` and `go test ./...` pass clean
-- [ ] Update CLAUDE.md, ARCHITECTURE.md, PROGRESS.md
+- [x] Lint setup (golangci-lint config)
+- [x] Clock abstraction: inject `jonboulle/clockwork` into Garden for deterministic timestamp tests
+- [x] End-to-end test: init → add → checkpoint → modify file → status → restore → verify
+- [x] Ensure `go vet ./...` and `go test ./...` pass clean
+- [x] Update CLAUDE.md, ARCHITECTURE.md, PROGRESS.md
 
 ## Future Steps (Not Phase 1)
 
