@@ -226,10 +226,9 @@ Depends on Steps 17, 18.
 
 ### Step 21: Lock/Unlock Toggle Commands
 
-- [ ] `garden/garden.go`: `Lock(paths []string) error` — set `locked: true` on existing entries
-- [ ] `garden/garden.go`: `Unlock(paths []string) error` — set `locked: false` on existing entries
-- [ ] `cmd/sgard/lock.go`: `sgard lock <path>...`, `sgard unlock <path>...`
-- [ ] Tests: lock existing entry, unlock it, verify behavior changes
+- [x] `garden/lock.go`: `Lock(paths)`, `Unlock(paths)` — toggle locked flag on existing entries
+- [x] `cmd/sgard/lock.go`: `sgard lock <path>...`, `sgard unlock <path>...`
+- [x] Tests: lock/unlock existing entry, persist, error on untracked, checkpoint/status behavior changes (6 tests)
 
 ### Step 22: Shell Completion
 

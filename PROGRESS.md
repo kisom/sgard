@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 3 complete. v2.0.0 released. Phase 4 planned, ready for Step 21.
+**Phase:** Phase 4 in progress. Step 21 complete, ready for Step 22.
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Phase 4: Hardening + Completeness. Step 21 (lock/unlock toggle) is next.
+Step 22: Shell Completion.
 
 ## Known Issues / Decisions Deferred
 
@@ -84,3 +84,4 @@ Phase 4: Hardening + Completeness. Step 21 (lock/unlock toggle) is next.
 | 2026-03-24 | 20 | Polish: encryption e2e test, all docs updated, flake vendorHash updated. |
 | 2026-03-24 | — | Locked files + dir-only entries. v2.0.0 released. |
 | 2026-03-24 | — | Phase 4 planned (Steps 21–27): lock/unlock, shell completion, TLS, DEK rotation, real FIDO2, test cleanup. |
+| 2026-03-24 | 21 | Lock/unlock toggle commands. garden/lock.go, cmd/sgard/lock.go, 6 tests. |
