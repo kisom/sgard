@@ -563,7 +563,27 @@ new machine, the user runs `sgard encrypt add-fido2` which:
 On next push, the new slot propagates to the server and other machines.
 Each machine accumulates its own FIDO2 slot over time.
 
-### Future: Manifest Signing
+### Planned: TLS Transport (Phase 4)
+
+sgardd will support optional TLS via `--tls-cert` and `--tls-key` flags.
+When provided, the server uses `credentials.NewTLS()`. Without them,
+it runs insecure (current behavior). The client gains `--tls` and
+`--tls-ca` flags for connecting to TLS-enabled servers.
+
+### Planned: DEK Rotation (Phase 4)
+
+`sgard encrypt rotate-dek` generates a new DEK, re-encrypts all
+encrypted blobs, and re-wraps the new DEK with all existing KEK slots.
+Required when the DEK is suspected compromised (re-wrapping alone is
+insufficient since the old DEK could decrypt the existing blobs).
+
+### Planned: Multi-Repo + Per-Machine Inclusion (Phase 5)
+
+Support for multiple repos on a single server, and per-machine
+inclusion rules (e.g., "this file only applies to Linux machines" or
+"this directory is only for the workstation"). Design TBD.
+
+### Future: Manifest Signing (Phase 6)
 
 Manifest signing (to detect tampering) is deferred. The challenge is
 the trust model: which key signs, and how does a pulling client verify
