@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 2 complete (Steps 9–16). Remote sync fully implemented.
+**Phase:** Phase 2 complete. Phase 3 (Encryption) planned, ready for Step 17.
 
 **Last updated:** 2026-03-24
 
@@ -38,20 +38,19 @@ ARCHITECTURE.md for design details.
 
 ## In Progress
 
-Phase 2: gRPC Remote Sync.
+(none)
 
 ## Up Next
 
-Phase 2 is complete. Future work: TLS transport, shell completions, multi-repo server.
+Phase 3: Encryption. Step 17 (passphrase-only core) is next.
 
 ## Known Issues / Decisions Deferred
 
-- **Blob durability**: blobs are not stored in git. A strategy for backup or
-  replication is deferred to a future phase.
-- **gRPC remote mode**: Phase 2. Package structure is designed to accommodate
-  it (garden core separates logic from CLI wiring).
-- **Clock abstraction**: Done — `jonboulle/clockwork` injected. E2e test
-  uses fake clock for deterministic timestamps.
+- **Manifest signing**: deferred — trust model (which key signs, how do
+  pulling clients verify) needs design.
+- **DEK rotation**: `sgard encrypt rotate-dek` (re-encrypt all blobs)
+  deferred to future work.
+- **FIDO2 testing**: hardware-dependent, may need mocks or CI skip.
 
 ## Change Log
 
@@ -77,3 +76,5 @@ Phase 2 is complete. Future work: TLS transport, shell completions, multi-repo s
 | 2026-03-23 | 14 | SSH key auth: server interceptor (authorized_keys, signature verification), client PerRPCCredentials (ssh-agent/key file). 8 tests including auth integration. |
 | 2026-03-24 | 15 | CLI wiring: push, pull, prune commands, sgardd daemon binary, --remote/--ssh-key flags, local prune with 2 tests. |
 | 2026-03-24 | 16 | Polish: updated all docs, flake.nix (sgardd + vendorHash), goreleaser (both binaries), e2e push/pull test with auth. |
+| 2026-03-24 | — | JWT token auth implemented (transparent auto-renewal, XDG token cache, ReauthChallenge fast path). |
+| 2026-03-24 | — | Phase 3 encryption design: selective per-file encryption, KEK slots (passphrase + fido2/label), manifest-embedded config. |

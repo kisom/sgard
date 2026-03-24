@@ -177,8 +177,57 @@ Depends on Steps 13, 14.
 - [x] E2e integration test: init two repos, push from one, pull into other (with auth)
 - [x] Verify: all tests pass, full push/pull cycle works
 
-## Future Steps (Not Phase 2)
+## Phase 3: Encryption
+
+### Step 17: Encryption Core (Passphrase Only)
+
+- [ ] `manifest/manifest.go`: add `Encrypted`, `PlaintextHash` fields to Entry; add `Encryption` section with `KekSlots` map to Manifest
+- [ ] `garden/encrypt.go`: `EncryptInit(passphrase string) error` — generate DEK, derive KEK via Argon2id, wrap DEK, store in manifest encryption section
+- [ ] `garden/encrypt.go`: `UnlockDEK() ([]byte, error)` — read slots, try passphrase, unwrap DEK; cache in memory for command duration
+- [ ] `garden/encrypt.go`: encrypt/decrypt helpers using XChaCha20-Poly1305 (nonce + seal/open)
+- [ ] `garden/garden.go`: modify Add to accept `--encrypt` flag — encrypt blob before storing, set `encrypted: true` and `plaintext_hash` on entry
+- [ ] `garden/garden.go`: modify Checkpoint to re-encrypt changed encrypted entries
+- [ ] `garden/restore.go`: modify Restore to decrypt encrypted blobs before writing
+- [ ] `garden/diff.go`: modify Diff to decrypt stored blob before diffing
+- [ ] `garden/garden.go`: modify Status to use `plaintext_hash` for encrypted entries
+- [ ] Tests: round-trip add-encrypted → checkpoint → restore, verify decrypted content matches; status on encrypted entry; diff on encrypted entry
+- [ ] Verify: `go test ./... && go vet ./... && golangci-lint run ./...`
+
+### Step 18: FIDO2 Support
+
+Depends on Step 17.
+
+- [ ] `garden/encrypt_fido2.go`: FIDO2 hmac-secret KEK derivation via libfido2
+- [ ] `garden/encrypt.go`: extend UnlockDEK to try fido2/* slots first (check credential_id against connected devices), fall back to passphrase
+- [ ] `garden/encrypt.go`: `AddFIDO2Slot(label string) error` — unlock DEK via existing slot, register FIDO2 credential, wrap DEK, add slot to manifest
+- [ ] Tests: FIDO2 slot add/unwrap (may need mock or skip on CI without hardware)
+- [ ] Verify: `go test ./... && go vet ./... && golangci-lint run ./...`
+
+### Step 19: Encryption CLI + Slot Management
+
+Depends on Steps 17, 18.
+
+- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt init [--fido2]` — creates DEK + passphrase slot (+ FIDO2 slot if --fido2)
+- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt add-fido2 [--label]` — adds FIDO2 slot
+- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt remove-slot <name>` — removes a slot (refuse if it's the last one)
+- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt list-slots` — print slot names and types
+- [ ] `cmd/sgard/encrypt.go`: `sgard encrypt change-passphrase` — re-wrap DEK with new passphrase
+- [ ] `cmd/sgard/add.go`: add `--encrypt` flag
+- [ ] Update proto: add `encrypted`, `plaintext_hash` to ManifestEntry; add encryption section to Manifest message
+- [ ] Update `server/convert.go`: handle new fields in proto conversion
+- [ ] Verify: both binaries compile, `go test ./...`
+
+### Step 20: Encryption Polish + Release
+
+- [ ] E2e test: add encrypted + plaintext files, push to server, pull to fresh repo, decrypt and verify
+- [ ] Update ARCHITECTURE.md, README.md, CLAUDE.md
+- [ ] Update flake.nix vendorHash if deps changed
+- [ ] Verify: all tests pass, lint clean
+
+## Future Steps (Not Phase 3)
 
 - Shell completion via cobra
 - TLS transport (optional --tls-cert/--tls-key on sgardd)
 - Multiple repo support on server
+- Manifest signing (requires trust model design)
+- DEK rotation (`sgard encrypt rotate-dek` — re-encrypt all blobs)
