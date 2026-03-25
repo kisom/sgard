@@ -613,11 +613,51 @@ The rotation process:
 
 Plaintext entries are untouched.
 
-### Planned: Multi-Repo + Per-Machine Inclusion (Phase 5)
+### Per-Machine Targeting (Phase 5)
 
-Support for multiple repos on a single server, and per-machine
-inclusion rules (e.g., "this file only applies to Linux machines" or
-"this directory is only for the workstation"). Design TBD.
+Entries can be targeted to specific machines using `only` and `never`
+labels. A machine's identity is a set of labels computed at runtime:
+
+- **Short hostname:** `vade` (before the first dot, lowercased)
+- **OS:** `os:linux`, `os:darwin`, `os:windows` (from `runtime.GOOS`)
+- **Architecture:** `arch:amd64`, `arch:arm64` (from `runtime.GOARCH`)
+- **Tags:** `tag:work`, `tag:server` (from `<repo>/tags`, local-only)
+
+**Manifest fields on Entry:**
+
+```yaml
+files:
+  - path: ~/.bashrc.linux
+    only: [os:linux]            # restore/checkpoint only on Linux
+    ...
+  - path: ~/.ssh/work-config
+    only: [tag:work]            # only on machines tagged "work"
+    ...
+  - path: ~/.config/heavy
+    never: [arch:arm64]         # everywhere except ARM
+    ...
+  - path: ~/.special
+    only: [vade]                # only on host "vade"
+    ...
+```
+
+**Matching rules:**
+- `only` set → entry applies if *any* label matches the machine
+- `never` set → entry excluded if *any* label matches
+- Both set → error (mutually exclusive)
+- Neither set → applies everywhere (current behavior)
+
+**Operations affected:**
+- `restore` — skip non-matching entries
+- `checkpoint` — skip non-matching entries (don't clobber stored version)
+- `status` — report non-matching entries as `skipped`
+- `add`, `list`, `verify`, `diff` — operate on all entries regardless
+
+**Tags file:** `<repo>/tags`, one tag per line, not synced. Each
+machine defines its own tags. `sgard init` adds `tags` to `.gitignore`.
+
+**Label format:** bare string = hostname, `prefix:value` = typed matcher.
+The `tag:` prefix in `only`/`never` maps to bare names in the tags file.
 
 ### Future: Manifest Signing (Phase 6)
 

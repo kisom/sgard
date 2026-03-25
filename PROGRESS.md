@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Phase 5: Multi-Repo + Per-Machine Inclusion (to be planned).
+Phase 5: Per-Machine Targeting (Steps 28–32). Ready for Step 28.
 
 ## Known Issues / Decisions Deferred
 
@@ -91,3 +91,4 @@ Phase 5: Multi-Repo + Per-Machine Inclusion (to be planned).
 | 2026-03-24 | 25 | Real FIDO2: go-libfido2 bindings, build tag gating, CLI wiring, nix sgard-fido2 package. |
 | 2026-03-24 | 26 | Test cleanup: tightened lint, 3 combo tests (encrypted+locked, dir-only+locked, toggle), stale doc fixes. |
 | 2026-03-24 | 27 | Phase 4 polish: e2e test (TLS+encryption+locked+push/pull), final doc review. Phase 4 complete. |
+| 2026-03-24 | — | Phase 5 planned (Steps 28–32): machine identity, targeting, tags, proto update, polish. |
