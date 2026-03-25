@@ -139,9 +139,8 @@ func (g *Garden) DeleteBlob(hash string) error {
 }
 
 // addEntry adds a single file or symlink to the manifest. If skipDup is true,
-// already-tracked paths are silently skipped. If encrypt is true, the file
-// blob is encrypted before storing. If lock is true, the entry is marked locked.
-func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup, encrypt, lock bool) error {
+// already-tracked paths are silently skipped.
+func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup bool, o AddOptions) error {
 	tilded := toTildePath(abs)
 
 	if g.findEntry(tilded) != nil {
@@ -154,7 +153,9 @@ func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup, 
 	entry := manifest.Entry{
 		Path:    tilded,
 		Mode:    fmt.Sprintf("%04o", info.Mode().Perm()),
-		Locked:  lock,
+		Locked:  o.Lock,
+		Only:    o.Only,
+		Never:   o.Never,
 		Updated: now,
 	}
 
@@ -173,7 +174,7 @@ func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup, 
 			return fmt.Errorf("reading file %s: %w", abs, err)
 		}
 
-		if encrypt {
+		if o.Encrypt {
 			if g.dek == nil {
 				return fmt.Errorf("DEK not unlocked; cannot encrypt %s", abs)
 			}
@@ -200,9 +201,11 @@ func (g *Garden) addEntry(abs string, info os.FileInfo, now time.Time, skipDup, 
 
 // AddOptions controls the behavior of Add.
 type AddOptions struct {
-	Encrypt bool // encrypt file blobs before storing
-	Lock    bool // mark entries as locked (repo-authoritative)
-	DirOnly bool // for directories: track the directory itself, don't recurse
+	Encrypt bool     // encrypt file blobs before storing
+	Lock    bool     // mark entries as locked (repo-authoritative)
+	DirOnly bool     // for directories: track the directory itself, don't recurse
+	Only    []string // per-machine targeting: only apply on matching machines
+	Never   []string // per-machine targeting: never apply on matching machines
 }
 
 // Add tracks new files, directories, or symlinks. Each path is resolved
@@ -243,6 +246,8 @@ func (g *Garden) Add(paths []string, opts ...AddOptions) error {
 					Type:    "directory",
 					Mode:    fmt.Sprintf("%04o", info.Mode().Perm()),
 					Locked:  o.Lock,
+					Only:    o.Only,
+					Never:   o.Never,
 					Updated: now,
 				}
 				g.manifest.Files = append(g.manifest.Files, entry)
@@ -258,14 +263,14 @@ func (g *Garden) Add(paths []string, opts ...AddOptions) error {
 					if err != nil {
 						return fmt.Errorf("stat %s: %w", path, err)
 					}
-					return g.addEntry(path, fi, now, true, o.Encrypt, o.Lock)
+					return g.addEntry(path, fi, now, true, o)
 				})
 				if err != nil {
 					return fmt.Errorf("walking directory %s: %w", abs, err)
 				}
 			}
 		} else {
-			if err := g.addEntry(abs, info, now, false, o.Encrypt, o.Lock); err != nil {
+			if err := g.addEntry(abs, info, now, false, o); err != nil {
 				return err
 			}
 		}
@@ -290,9 +295,18 @@ type FileStatus struct {
 // the manifest.
 func (g *Garden) Checkpoint(message string) error {
 	now := g.clock.Now().UTC()
+	labels := g.Identity()
 
 	for i := range g.manifest.Files {
 		entry := &g.manifest.Files[i]
+
+		applies, err := EntryApplies(entry, labels)
+		if err != nil {
+			return err
+		}
+		if !applies {
+			continue
+		}
 
 		abs, err := ExpandTildePath(entry.Path)
 		if err != nil {
@@ -378,9 +392,19 @@ func (g *Garden) Checkpoint(message string) error {
 // and returns a status for each.
 func (g *Garden) Status() ([]FileStatus, error) {
 	var results []FileStatus
+	labels := g.Identity()
 
 	for i := range g.manifest.Files {
 		entry := &g.manifest.Files[i]
+
+		applies, err := EntryApplies(entry, labels)
+		if err != nil {
+			return nil, err
+		}
+		if !applies {
+			results = append(results, FileStatus{Path: entry.Path, State: "skipped"})
+			continue
+		}
 
 		abs, err := ExpandTildePath(entry.Path)
 		if err != nil {
@@ -450,8 +474,18 @@ func (g *Garden) Restore(paths []string, force bool, confirm func(path string) b
 		}
 	}
 
+	labels := g.Identity()
+
 	for i := range entries {
 		entry := &entries[i]
+
+		applies, err := EntryApplies(entry, labels)
+		if err != nil {
+			return err
+		}
+		if !applies {
+			continue
+		}
 
 		abs, err := ExpandTildePath(entry.Path)
 		if err != nil {
