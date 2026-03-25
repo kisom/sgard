@@ -33,8 +33,8 @@ func TestInitCreatesStructure(t *testing.T) {
 	gitignore, err := os.ReadFile(filepath.Join(repoDir, ".gitignore"))
 	if err != nil {
 		t.Errorf(".gitignore not found: %v", err)
-	} else if string(gitignore) != "blobs/\n" {
-		t.Errorf(".gitignore content = %q, want %q", gitignore, "blobs/\n")
+	} else if string(gitignore) != "blobs/\ntags\n" {
+		t.Errorf(".gitignore content = %q, want %q", gitignore, "blobs/\ntags\n")
 	}
 
 	if g.manifest.Version != 1 {

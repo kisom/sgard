@@ -48,7 +48,7 @@ func Init(root string) (*Garden, error) {
 	}
 
 	gitignorePath := filepath.Join(absRoot, ".gitignore")
-	if err := os.WriteFile(gitignorePath, []byte("blobs/\n"), 0o644); err != nil {
+	if err := os.WriteFile(gitignorePath, []byte("blobs/\ntags\n"), 0o644); err != nil {
 		return nil, fmt.Errorf("creating .gitignore: %w", err)
 	}
 

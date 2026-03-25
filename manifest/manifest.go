@@ -20,6 +20,8 @@ type Entry struct {
 	Mode          string    `yaml:"mode,omitempty"`
 	Target        string    `yaml:"target,omitempty"`
 	Updated       time.Time `yaml:"updated"`
+	Only          []string  `yaml:"only,omitempty"`
+	Never         []string  `yaml:"never,omitempty"`
 }
 
 // KekSlot describes a single KEK source that can unwrap the DEK.
