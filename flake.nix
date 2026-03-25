@@ -19,7 +19,7 @@
             src = pkgs.lib.cleanSource ./.;
             subPackages = [ "cmd/sgard" "cmd/sgardd" ];
 
-            vendorHash = "sha256-0aGo5EbvPWt9Oflq+GTq8nEBUWZj3O5Ni4Qwd5EBa7Y=";
+            vendorHash = "sha256-LSz15iFsP4N3Cif1PFHEKg3udeqH/9WQQbZ50sxtWTk=";
 
             ldflags = [ "-s" "-w" ];
 
