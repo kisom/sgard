@@ -17,6 +17,8 @@ message ManifestEntry {
   string plaintext_hash              = 7; // SHA-256 of plaintext (encrypted entries only)
   bool   encrypted                   = 8;
   bool   locked                      = 9; // repo-authoritative; restore always overwrites
+  repeated string only                = 10; // per-machine targeting: only apply on matching
+  repeated string never               = 11; // per-machine targeting: never apply on matching
 }
 
 // KekSlot describes a single KEK source for unwrapping the DEK.

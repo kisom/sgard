@@ -57,6 +57,8 @@ func EntryToProto(e manifest.Entry) *sgardpb.ManifestEntry {
 		PlaintextHash: e.PlaintextHash,
 		Encrypted:     e.Encrypted,
 		Locked:        e.Locked,
+		Only:          e.Only,
+		Never:         e.Never,
 	}
 }
 
@@ -72,6 +74,8 @@ func ProtoToEntry(p *sgardpb.ManifestEntry) manifest.Entry {
 		PlaintextHash: p.GetPlaintextHash(),
 		Encrypted:     p.GetEncrypted(),
 		Locked:        p.GetLocked(),
+		Only:          p.GetOnly(),
+		Never:         p.GetNever(),
 	}
 }
 

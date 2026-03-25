@@ -91,6 +91,46 @@ func TestEmptyManifestRoundTrip(t *testing.T) {
 	}
 }
 
+func TestTargetingRoundTrip(t *testing.T) {
+	now := time.Date(2026, 3, 24, 0, 0, 0, 0, time.UTC)
+
+	onlyEntry := manifest.Entry{
+		Path:    "~/.bashrc.linux",
+		Type:    "file",
+		Hash:    "abcd",
+		Only:    []string{"os:linux", "tag:work"},
+		Updated: now,
+	}
+
+	proto := EntryToProto(onlyEntry)
+	back := ProtoToEntry(proto)
+
+	if len(back.Only) != 2 || back.Only[0] != "os:linux" || back.Only[1] != "tag:work" {
+		t.Errorf("Only round-trip: got %v, want [os:linux tag:work]", back.Only)
+	}
+	if len(back.Never) != 0 {
+		t.Errorf("Never should be empty, got %v", back.Never)
+	}
+
+	neverEntry := manifest.Entry{
+		Path:    "~/.config/heavy",
+		Type:    "file",
+		Hash:    "efgh",
+		Never:   []string{"arch:arm64"},
+		Updated: now,
+	}
+
+	proto2 := EntryToProto(neverEntry)
+	back2 := ProtoToEntry(proto2)
+
+	if len(back2.Never) != 1 || back2.Never[0] != "arch:arm64" {
+		t.Errorf("Never round-trip: got %v, want [arch:arm64]", back2.Never)
+	}
+	if len(back2.Only) != 0 {
+		t.Errorf("Only should be empty, got %v", back2.Only)
+	}
+}
+
 func TestEntryEmptyOptionalFieldsRoundTrip(t *testing.T) {
 	now := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
 	e := manifest.Entry{
