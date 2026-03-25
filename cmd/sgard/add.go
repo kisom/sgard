@@ -14,6 +14,8 @@ var (
 	encryptFlag bool
 	lockFlag    bool
 	dirOnlyFlag bool
+	onlyFlag    []string
+	neverFlag   []string
 )
 
 var addCmd = &cobra.Command{
@@ -35,10 +37,16 @@ var addCmd = &cobra.Command{
 			}
 		}
 
+		if len(onlyFlag) > 0 && len(neverFlag) > 0 {
+			return fmt.Errorf("--only and --never are mutually exclusive")
+		}
+
 		opts := garden.AddOptions{
 			Encrypt: encryptFlag,
 			Lock:    lockFlag,
 			DirOnly: dirOnlyFlag,
+			Only:    onlyFlag,
+			Never:   neverFlag,
 		}
 
 		if err := g.Add(args, opts); err != nil {
@@ -63,5 +71,7 @@ func init() {
 	addCmd.Flags().BoolVar(&encryptFlag, "encrypt", false, "encrypt file contents before storing")
 	addCmd.Flags().BoolVar(&lockFlag, "lock", false, "mark as locked (repo-authoritative, restore always overwrites)")
 	addCmd.Flags().BoolVar(&dirOnlyFlag, "dir", false, "track directory itself without recursing into contents")
+	addCmd.Flags().StringSliceVar(&onlyFlag, "only", nil, "only apply on machines matching these labels (comma-separated)")
+	addCmd.Flags().StringSliceVar(&neverFlag, "never", nil, "never apply on machines matching these labels (comma-separated)")
 	rootCmd.AddCommand(addCmd)
 }
