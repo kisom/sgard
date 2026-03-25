@@ -44,6 +44,8 @@ ARCHITECTURE.md for design details.
 
 Phase 6: Manifest Signing (to be planned).
 
+## Standalone Additions
+
 ## Known Issues / Decisions Deferred
 
 - **Manifest signing**: deferred — trust model (which key signs, how do
@@ -97,3 +99,4 @@ Phase 6: Manifest Signing (to be planned).
 | 2026-03-24 | 30 | Targeting CLI: tag add/remove/list, identity, --only/--never on add, target command. |
 | 2026-03-24 | 31 | Proto + sync: only/never fields on ManifestEntry, conversion, round-trip test. |
 | 2026-03-24 | 32 | Phase 5 polish: e2e test (targeting + push/pull + restore), docs updated. Phase 5 complete. |
+| 2026-03-25 | — | `sgard info` command: shows detailed file information (status, hash, timestamps, mode, encryption, targeting). 5 tests. |

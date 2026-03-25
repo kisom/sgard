@@ -123,6 +123,7 @@ All commands operate on a repository directory (default: `~/.sgard`, override wi
 | `sgard restore [<path>...] [--force]` | Restore files from manifest to their original locations |
 | `sgard status` | Compare current files against manifest: modified, missing, ok |
 | `sgard verify` | Check all blobs against manifest hashes (integrity check) |
+| `sgard info <path>` | Show detailed information about a tracked file |
 | `sgard list` | List all tracked files |
 | `sgard diff <path>` | Show content diff between current file and stored blob |
 | `sgard prune` | Remove orphaned blobs not referenced by the manifest |
@@ -675,7 +676,7 @@ sgard/
     encrypt.go            # sgard encrypt init/add-fido2/remove-slot/list-slots/change-passphrase
     push.go pull.go prune.go mirror.go
     init.go add.go remove.go checkpoint.go
-    restore.go status.go verify.go list.go diff.go version.go
+    restore.go status.go verify.go list.go info.go diff.go version.go
 
   cmd/sgardd/             # gRPC server daemon
     main.go               # --listen, --repo, --authorized-keys, --tls-cert, --tls-key flags
@@ -686,7 +687,7 @@ sgard/
     encrypt_fido2.go      # FIDO2Device interface, AddFIDO2Slot, unlock resolution
     fido2_hardware.go     # Real FIDO2 via go-libfido2 (//go:build fido2)
     fido2_nohardware.go   # Stub returning nil (//go:build !fido2)
-    restore.go mirror.go prune.go remove.go verify.go list.go diff.go
+    restore.go mirror.go prune.go remove.go verify.go list.go info.go diff.go
     hasher.go             # SHA-256 file hashing
 
   manifest/               # YAML manifest parsing
@@ -734,6 +735,7 @@ func (g *Garden) Restore(paths []string, force bool, confirm func(string) bool) 
 func (g *Garden) Status() ([]FileStatus, error)
 func (g *Garden) Verify() ([]VerifyResult, error)
 func (g *Garden) List() []manifest.Entry
+func (g *Garden) Info(path string) (*FileInfo, error)
 func (g *Garden) Diff(path string) (string, error)
 func (g *Garden) Prune() (int, error)
 func (g *Garden) MirrorUp(paths []string) error
