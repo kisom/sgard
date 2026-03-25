@@ -7,7 +7,7 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 4 complete. All 7 steps done (21–27).
+**Phase:** Phase 5 complete. All 5 steps done (28–32).
 
 **Last updated:** 2026-03-24
 
@@ -42,7 +42,7 @@ ARCHITECTURE.md for design details.
 
 ## Up Next
 
-Phase 5: Per-Machine Targeting (Steps 28–32). Ready for Step 28.
+Phase 6: Manifest Signing (to be planned).
 
 ## Known Issues / Decisions Deferred
 
@@ -92,3 +92,8 @@ Phase 5: Per-Machine Targeting (Steps 28–32). Ready for Step 28.
 | 2026-03-24 | 26 | Test cleanup: tightened lint, 3 combo tests (encrypted+locked, dir-only+locked, toggle), stale doc fixes. |
 | 2026-03-24 | 27 | Phase 4 polish: e2e test (TLS+encryption+locked+push/pull), final doc review. Phase 4 complete. |
 | 2026-03-24 | — | Phase 5 planned (Steps 28–32): machine identity, targeting, tags, proto update, polish. |
+| 2026-03-24 | 28 | Machine identity + targeting core: Entry Only/Never, Identity(), EntryApplies(), tags file. 13 tests. |
+| 2026-03-24 | 29 | Operations respect targeting: checkpoint/restore/status skip non-matching. 6 tests. |
+| 2026-03-24 | 30 | Targeting CLI: tag add/remove/list, identity, --only/--never on add, target command. |
+| 2026-03-24 | 31 | Proto + sync: only/never fields on ManifestEntry, conversion, round-trip test. |
+| 2026-03-24 | 32 | Phase 5 polish: e2e test (targeting + push/pull + restore), docs updated. Phase 5 complete. |

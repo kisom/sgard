@@ -119,6 +119,37 @@ sgard add --dir ~/.local/share/applications
 On `restore`, sgard creates the directory with the correct permissions
 but doesn't touch its contents.
 
+### Per-machine targeting
+
+Some files only apply to certain machines. Use `--only` and `--never`
+to control where entries are active:
+
+```sh
+# Only restore on Linux
+sgard add --only os:linux ~/.bashrc.linux
+
+# Never restore on ARM
+sgard add --never arch:arm64 ~/.config/heavy-tool
+
+# Only on machines tagged "work"
+sgard tag add work
+sgard add --only tag:work ~/.ssh/work-config
+
+# Only on a specific host
+sgard add --only vade ~/.special-config
+
+# See this machine's identity
+sgard identity
+
+# Change targeting on an existing entry
+sgard target ~/.bashrc.linux --only os:linux,tag:desktop
+sgard target ~/.bashrc.linux --clear
+```
+
+Labels: bare string = hostname, `os:linux`/`os:darwin`, `arch:amd64`/`arch:arm64`,
+`tag:<name>` from local `<repo>/tags` file. `checkpoint`, `restore`, and
+`status` skip non-matching entries automatically.
+
 ## Commands
 
 ### Local
@@ -129,6 +160,11 @@ but doesn't touch its contents.
 | `add <path>...` | Track files, directories (recursed), or symlinks |
 | `add --lock <path>...` | Track as locked (repo-authoritative, auto-restores on drift) |
 | `add --dir <path>` | Track directory itself without recursing into contents |
+| `add --only <labels>` | Track with per-machine targeting (only on matching) |
+| `add --never <labels>` | Track with per-machine targeting (never on matching) |
+| `target <path> --only/--never/--clear` | Set or clear targeting on existing entry |
+| `tag add/remove/list` | Manage machine-local tags |
+| `identity` | Show this machine's identity labels |
 | `remove <path>...` | Stop tracking files |
 | `checkpoint [-m msg]` | Re-hash tracked files and update the manifest |
 | `restore [path...] [-f]` | Restore files to their original locations |

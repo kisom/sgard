@@ -280,41 +280,41 @@ Depends on Steps 17, 18.
 
 ### Step 28: Machine Identity + Targeting Core
 
-- [ ] `manifest/manifest.go`: add `Only []string` and `Never []string` to Entry (yaml tags `only,omitempty` / `never,omitempty`)
-- [ ] `garden/identity.go`: `Identity(repoRoot string) []string` — returns machine's label set: short hostname, `os:<GOOS>`, `arch:<GOARCH>`, `tag:<name>` from `<repo>/tags`
-- [ ] `garden/targeting.go`: `EntryApplies(entry, labels) bool` — match logic: `only` → any match, `never` → no match, error if both set
-- [ ] `garden/tags.go`: `LoadTags(repoRoot)`, `SaveTag(repoRoot, tag)`, `RemoveTag(repoRoot, tag)` — read/write `<repo>/tags` file
-- [ ] `garden/garden.go`: `Init` appends `tags` to `.gitignore`
-- [ ] Tests: identity computation, tag load/save, matching (only, never, both-error, bare hostname, os:, arch:, tag:, neither)
+- [x] `manifest/manifest.go`: add `Only []string` and `Never []string` to Entry
+- [x] `garden/identity.go`: `Identity()` returns machine label set
+- [x] `garden/targeting.go`: `EntryApplies(entry, labels)` match logic
+- [x] `garden/tags.go`: `LoadTags`, `SaveTag`, `RemoveTag` for `<repo>/tags`
+- [x] `garden/garden.go`: `Init` appends `tags` to `.gitignore`
+- [x] Tests: 13 tests (identity, tags, matching: only, never, both-error, hostname, os, arch, tag, case-insensitive, multiple)
 
 ### Step 29: Operations Respect Targeting
 
-- [ ] `garden/garden.go`: `Checkpoint` skips entries where `!EntryApplies`
-- [ ] `garden/garden.go`: `Restore` skips entries where `!EntryApplies`
-- [ ] `garden/garden.go`: `Status` reports `skipped` for non-matching entries (or omits them — TBD)
-- [ ] `garden/garden.go`: `Add` accepts `Only`/`Never` in `AddOptions`
-- [ ] Tests: checkpoint/restore/status skip non-matching, add with targeting
+- [x] `Checkpoint` skips entries where `!EntryApplies`
+- [x] `Restore` skips entries where `!EntryApplies`
+- [x] `Status` reports `skipped` for non-matching entries
+- [x] `Add` accepts `Only`/`Never` in `AddOptions`, propagated through `addEntry`
+- [x] Tests: 6 tests (checkpoint skip/process, status skipped, restore skip, add with only/never)
 
 ### Step 30: Targeting CLI Commands
 
-- [ ] `cmd/sgard/tag.go`: `sgard tag add <name>`, `sgard tag remove <name>`, `sgard tag list`
-- [ ] `cmd/sgard/identity.go`: `sgard identity` — print full label set
-- [ ] `cmd/sgard/add.go`: `--only` and `--never` flags (comma-separated or repeated)
-- [ ] `cmd/sgard/target.go`: `sgard target <path> --only <labels>`, `--never <labels>`, `--clear`
-- [ ] Tests: tag file CRUD, identity output
+- [x] `cmd/sgard/tag.go`: tag add/remove/list
+- [x] `cmd/sgard/identity.go`: identity command
+- [x] `cmd/sgard/add.go`: --only/--never flags
+- [x] `cmd/sgard/target.go`: target command with --only/--never/--clear
+- [x] `garden/target.go`: SetTargeting method
 
 ### Step 31: Proto + Sync Update
 
-- [ ] `proto/sgard/v1/sgard.proto`: add `repeated string only` and `repeated string never` to ManifestEntry
-- [ ] `server/convert.go`: update proto ↔ manifest conversion
-- [ ] Regenerate proto: `make proto`
-- [ ] Tests: round-trip conversion with targeting fields
+- [x] `proto/sgard/v1/sgard.proto`: only/never fields on ManifestEntry
+- [x] `server/convert.go`: updated conversion
+- [x] Regenerated proto
+- [x] Tests: targeting round-trip test
 
 ### Step 32: Phase 5 Polish
 
-- [ ] Update ARCHITECTURE.md, README.md, CLAUDE.md, PROGRESS.md
-- [ ] E2e test: add entries with targeting, push/pull, restore on different identity
-- [ ] Verify: all tests pass, lint clean, both binaries compile
+- [x] Update ARCHITECTURE.md, README.md, CLAUDE.md, PROGRESS.md
+- [x] E2e test: push/pull with targeting labels, restore respects targeting
+- [x] Verify: all tests pass, lint clean, both binaries compile
 
 ## Phase 6: Manifest Signing
 
