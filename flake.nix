@@ -11,11 +11,14 @@
       let
         pkgs = import nixpkgs { inherit system; };
       in
+      let
+        version = builtins.replaceStrings [ "\n" ] [ "" ] (builtins.readFile ./VERSION);
+      in
       {
         packages = {
           sgard = pkgs.buildGoModule rec {
             pname = "sgard";
-            version = "2.1.0";
+            inherit version;
             src = pkgs.lib.cleanSource ./.;
             subPackages = [ "cmd/sgard" "cmd/sgardd" ];
 
@@ -31,7 +34,7 @@
 
           sgard-fido2 = pkgs.buildGoModule rec {
             pname = "sgard-fido2";
-            version = "2.1.0";
+            inherit version;
             src = pkgs.lib.cleanSource ./.;
             subPackages = [ "cmd/sgard" "cmd/sgardd" ];
 
