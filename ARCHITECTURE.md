@@ -708,7 +708,8 @@ sgard/
   sgardpb/                # Generated protobuf + gRPC Go code
   proto/sgard/v1/         # Proto source definitions
 
-  flake.nix               # Nix flake (builds sgard + sgardd)
+  VERSION                 # Semver string, read by flake.nix; synced from latest git tag via `make version`
+  flake.nix               # Nix flake (builds sgard + sgardd, version from VERSION file)
   .goreleaser.yaml        # GoReleaser (builds both binaries)
 ```
 
