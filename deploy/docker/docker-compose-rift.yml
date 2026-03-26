@@ -1,0 +1,16 @@
+services:
+  sgardd:
+    image: localhost/sgardd:latest
+    container_name: sgardd
+    restart: unless-stopped
+    user: "0:0"
+    ports:
+      - "127.0.0.1:19473:9473"
+    volumes:
+      - /srv/sgard:/srv/sgard
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

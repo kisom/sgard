@@ -37,28 +37,49 @@ func defaultRepo() string {
 	return filepath.Join(home, ".sgard")
 }
 
-// resolveRemote returns the remote address from flag, env, or repo config file.
-func resolveRemote() (string, error) {
-	if remoteFlag != "" {
-		return remoteFlag, nil
+// resolveRemoteConfig returns the effective remote address, TLS flag, and CA
+// path by merging CLI flags, environment, and the saved remote.yaml config.
+// CLI flags take precedence, then env, then the saved config.
+func resolveRemoteConfig() (addr string, useTLS bool, caPath string, err error) {
+	// Start with saved config as baseline.
+	saved, _ := loadRemoteConfig()
+
+	// Address: flag > env > saved > legacy file.
+	addr = remoteFlag
+	if addr == "" {
+		addr = os.Getenv("SGARD_REMOTE")
 	}
-	if env := os.Getenv("SGARD_REMOTE"); env != "" {
-		return env, nil
+	if addr == "" && saved != nil {
+		addr = saved.Addr
 	}
-	// Try <repo>/remote file.
-	data, err := os.ReadFile(filepath.Join(repoFlag, "remote"))
-	if err == nil {
-		addr := strings.TrimSpace(string(data))
-		if addr != "" {
-			return addr, nil
+	if addr == "" {
+		data, ferr := os.ReadFile(filepath.Join(repoFlag, "remote"))
+		if ferr == nil {
+			addr = strings.TrimSpace(string(data))
 		}
 	}
-	return "", fmt.Errorf("no remote configured; use --remote, SGARD_REMOTE, or create %s/remote", repoFlag)
+	if addr == "" {
+		return "", false, "", fmt.Errorf("no remote configured; use 'sgard remote set' or --remote")
+	}
+
+	// TLS: flag wins if explicitly set, otherwise use saved.
+	useTLS = tlsFlag
+	if !useTLS && saved != nil {
+		useTLS = saved.TLS
+	}
+
+	// CA: flag wins if set, otherwise use saved.
+	caPath = tlsCAFlag
+	if caPath == "" && saved != nil {
+		caPath = saved.TLSCA
+	}
+
+	return addr, useTLS, caPath, nil
 }
 
 // dialRemote creates a gRPC client with token-based auth and auto-renewal.
 func dialRemote(ctx context.Context) (*client.Client, func(), error) {
-	addr, err := resolveRemote()
+	addr, useTLS, caPath, err := resolveRemoteConfig()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -72,16 +93,16 @@ func dialRemote(ctx context.Context) (*client.Client, func(), error) {
 	creds := client.NewTokenCredentials(cachedToken)
 
 	var transportCreds grpc.DialOption
-	if tlsFlag {
+	if useTLS {
 		tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
-		if tlsCAFlag != "" {
-			caPEM, err := os.ReadFile(tlsCAFlag)
+		if caPath != "" {
+			caPEM, err := os.ReadFile(caPath)
 			if err != nil {
 				return nil, nil, fmt.Errorf("reading CA cert: %w", err)
 			}
 			pool := x509.NewCertPool()
 			if !pool.AppendCertsFromPEM(caPEM) {
-				return nil, nil, fmt.Errorf("failed to parse CA cert %s", tlsCAFlag)
+				return nil, nil, fmt.Errorf("failed to parse CA cert %s", caPath)
 			}
 			tlsCfg.RootCAs = pool
 		}

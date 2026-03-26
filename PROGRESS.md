@@ -46,6 +46,15 @@ Phase 6: Manifest Signing (to be planned).
 
 ## Standalone Additions
 
+- **Deployment to rift**: sgardd deployed as Podman container on rift behind
+  mc-proxy (L4 SNI passthrough on :9443, multiplexed with metacrypt gRPC).
+  TLS cert issued by Metacrypt, SSH-key auth. DNS at
+  `sgard.svc.mcp.metacircular.net`.
+- **Default remote config**: `sgard remote set/show` commands. Saves addr,
+  TLS, and CA path to `<repo>/remote.yaml`. `dialRemote` merges saved config
+  with CLI flags (flags win). Removes need for `--remote`/`--tls` on every
+  push/pull.
+
 ## Known Issues / Decisions Deferred
 
 - **Manifest signing**: deferred — trust model (which key signs, how do
@@ -100,3 +109,5 @@ Phase 6: Manifest Signing (to be planned).
 | 2026-03-24 | 31 | Proto + sync: only/never fields on ManifestEntry, conversion, round-trip test. |
 | 2026-03-24 | 32 | Phase 5 polish: e2e test (targeting + push/pull + restore), docs updated. Phase 5 complete. |
 | 2026-03-25 | — | `sgard info` command: shows detailed file information (status, hash, timestamps, mode, encryption, targeting). 5 tests. |
+| 2026-03-25 | — | Deploy sgardd to rift: Dockerfile, docker-compose, mc-proxy L4 route on :9443, Metacrypt TLS cert, DNS. |
+| 2026-03-25 | — | `sgard remote set/show`: persistent remote config in `<repo>/remote.yaml` (addr, tls, tls_ca). |

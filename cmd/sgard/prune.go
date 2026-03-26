@@ -13,7 +13,7 @@ var pruneCmd = &cobra.Command{
 	Short: "Remove orphaned blobs not referenced by the manifest",
 	Long:  "Remove orphaned blobs locally, or on the remote server with --remote.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		addr, _ := resolveRemote()
+		addr, _, _, _ := resolveRemoteConfig()
 
 		if addr != "" {
 			return pruneRemote()
