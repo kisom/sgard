@@ -13,7 +13,7 @@
       in
       {
         packages = {
-          sgard = pkgs.buildGoModule {
+          sgard = pkgs.buildGoModule rec {
             pname = "sgard";
             version = "2.1.0";
             src = pkgs.lib.cleanSource ./.;
@@ -21,7 +21,7 @@
 
             vendorHash = "sha256-Z/Ja4j7YesNYefQQcWWRG2v8WuIL+UNqPGwYD5AipZY=";
 
-            ldflags = [ "-s" "-w" ];
+            ldflags = [ "-s" "-w" "-X main.version=${version}" ];
 
             meta = {
               description = "Shimmering Clarity Gardener: dotfile management";
@@ -29,7 +29,7 @@
             };
           };
 
-          sgard-fido2 = pkgs.buildGoModule {
+          sgard-fido2 = pkgs.buildGoModule rec {
             pname = "sgard-fido2";
             version = "2.1.0";
             src = pkgs.lib.cleanSource ./.;
@@ -41,7 +41,7 @@
             nativeBuildInputs = [ pkgs.pkg-config ];
             tags = [ "fido2" ];
 
-            ldflags = [ "-s" "-w" ];
+            ldflags = [ "-s" "-w" "-X main.version=${version}" ];
 
             meta = {
               description = "Shimmering Clarity Gardener: dotfile management (with FIDO2 hardware support)";
