@@ -206,8 +206,8 @@ func (c *Client) doPull(ctx context.Context, g *garden.Garden) (int, error) {
 	serverManifest := server.ProtoToManifest(pullResp.GetManifest())
 	localManifest := g.GetManifest()
 
-	// If local is newer or equal, nothing to do.
-	if !serverManifest.Updated.After(localManifest.Updated) {
+	// If local has files and is newer or equal, nothing to do.
+	if len(localManifest.Files) > 0 && !serverManifest.Updated.After(localManifest.Updated) {
 		return 0, nil
 	}
 

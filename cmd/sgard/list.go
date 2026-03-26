@@ -9,14 +9,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var listRemoteFlag bool
-
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all tracked files",
 	Long:  "List all tracked files locally, or on the remote server with -r.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if listRemoteFlag {
+		addr, _, _, _ := resolveRemoteConfig()
+		if addr != "" {
 			return listRemote()
 		}
 		return listLocal()
@@ -69,6 +68,5 @@ func printEntries(entries []manifest.Entry) {
 }
 
 func init() {
-	listCmd.Flags().BoolVarP(&listRemoteFlag, "use-remote", "r", false, "list files on the remote server")
 	rootCmd.AddCommand(listCmd)
 }

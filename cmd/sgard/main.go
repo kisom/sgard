@@ -133,7 +133,7 @@ func dialRemote(ctx context.Context) (*client.Client, func(), error) {
 
 func main() {
 	rootCmd.PersistentFlags().StringVar(&repoFlag, "repo", defaultRepo(), "path to sgard repository")
-	rootCmd.PersistentFlags().StringVar(&remoteFlag, "remote", "", "gRPC server address (host:port)")
+	rootCmd.PersistentFlags().StringVarP(&remoteFlag, "remote", "r", "", "gRPC server address (host:port)")
 	rootCmd.PersistentFlags().StringVar(&sshKeyFlag, "ssh-key", "", "path to SSH private key")
 	rootCmd.PersistentFlags().BoolVar(&tlsFlag, "tls", false, "use TLS for remote connection")
 	rootCmd.PersistentFlags().StringVar(&tlsCAFlag, "tls-ca", "", "path to CA certificate for TLS verification")

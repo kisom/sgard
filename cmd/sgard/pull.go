@@ -10,13 +10,17 @@ import (
 
 var pullCmd = &cobra.Command{
 	Use:   "pull",
-	Short: "Pull checkpoint from remote server",
+	Short: "Pull checkpoint from remote server and restore files",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 
 		g, err := garden.Open(repoFlag)
 		if err != nil {
-			return err
+			// Repo doesn't exist yet — init it so pull can populate it.
+			g, err = garden.Init(repoFlag)
+			if err != nil {
+				return fmt.Errorf("init repo for pull: %w", err)
+			}
 		}
 
 		c, cleanup, err := dialRemote(ctx)
@@ -32,9 +36,22 @@ var pullCmd = &cobra.Command{
 
 		if pulled == 0 {
 			fmt.Println("Already up to date.")
-		} else {
-			fmt.Printf("Pulled %d blob(s).\n", pulled)
+			return nil
 		}
+
+		fmt.Printf("Pulled %d blob(s).\n", pulled)
+
+		if g.HasEncryption() && g.NeedsDEK(g.List()) {
+			if err := unlockDEK(g); err != nil {
+				return err
+			}
+		}
+
+		if err := g.Restore(nil, true, nil); err != nil {
+			return fmt.Errorf("restore after pull: %w", err)
+		}
+
+		fmt.Println("Restore complete.")
 		return nil
 	},
 }
