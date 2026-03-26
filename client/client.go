@@ -8,6 +8,7 @@ import (
 	"io"
 
 	"github.com/kisom/sgard/garden"
+	"github.com/kisom/sgard/manifest"
 	"github.com/kisom/sgard/server"
 	"github.com/kisom/sgard/sgardpb"
 	"golang.org/x/crypto/ssh"
@@ -271,6 +272,22 @@ func (c *Client) doPull(ctx context.Context, g *garden.Garden) (int, error) {
 	}
 
 	return blobCount, nil
+}
+
+// List fetches the server's manifest and returns its entries without
+// downloading any blobs. Automatically re-authenticates if needed.
+func (c *Client) List(ctx context.Context) ([]manifest.Entry, error) {
+	var entries []manifest.Entry
+	err := c.retryOnAuth(ctx, func() error {
+		resp, err := c.rpc.PullManifest(ctx, &sgardpb.PullManifestRequest{})
+		if err != nil {
+			return fmt.Errorf("list remote: %w", err)
+		}
+		m := server.ProtoToManifest(resp.GetManifest())
+		entries = m.Files
+		return nil
+	})
+	return entries, err
 }
 
 // Prune requests the server to remove orphaned blobs. Returns the count removed.

@@ -111,3 +111,4 @@ Phase 6: Manifest Signing (to be planned).
 | 2026-03-25 | — | `sgard info` command: shows detailed file information (status, hash, timestamps, mode, encryption, targeting). 5 tests. |
 | 2026-03-25 | — | Deploy sgardd to rift: Dockerfile, docker-compose, mc-proxy L4 route on :9443, Metacrypt TLS cert, DNS. |
 | 2026-03-25 | — | `sgard remote set/show`: persistent remote config in `<repo>/remote.yaml` (addr, tls, tls_ca). |
+| 2026-03-26 | — | `sgard list` remote support: uses `resolveRemoteConfig()` to list server manifest via `PullManifest` RPC. Client `List()` method added. |
