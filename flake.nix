@@ -19,7 +19,7 @@
             src = pkgs.lib.cleanSource ./.;
             subPackages = [ "cmd/sgard" "cmd/sgardd" ];
 
-            vendorHash = "sha256-LSz15iFsP4N3Cif1PFHEKg3udeqH/9WQQbZ50sxtWTk=";
+            vendorHash = "sha256-Z/Ja4j7YesNYefQQcWWRG2v8WuIL+UNqPGwYD5AipZY=";
 
             ldflags = [ "-s" "-w" ];
 
@@ -35,7 +35,7 @@
             src = pkgs.lib.cleanSource ./.;
             subPackages = [ "cmd/sgard" "cmd/sgardd" ];
 
-            vendorHash = "sha256-LSz15iFsP4N3Cif1PFHEKg3udeqH/9WQQbZ50sxtWTk=";
+            vendorHash = "sha256-Z/Ja4j7YesNYefQQcWWRG2v8WuIL+UNqPGwYD5AipZY=";
 
             buildInputs = [ pkgs.libfido2 ];
             nativeBuildInputs = [ pkgs.pkg-config ];

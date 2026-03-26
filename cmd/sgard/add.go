@@ -1,13 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/kisom/sgard/garden"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var (
@@ -60,11 +59,16 @@ var addCmd = &cobra.Command{
 
 func promptPassphrase() (string, error) {
 	fmt.Fprint(os.Stderr, "Passphrase: ")
-	scanner := bufio.NewScanner(os.Stdin)
-	if scanner.Scan() {
-		return strings.TrimSpace(scanner.Text()), nil
+	fd := int(os.Stdin.Fd())
+	passphrase, err := term.ReadPassword(fd)
+	fmt.Fprintln(os.Stderr)
+	if err != nil {
+		return "", fmt.Errorf("reading passphrase: %w", err)
 	}
-	return "", fmt.Errorf("no passphrase provided")
+	if len(passphrase) == 0 {
+		return "", fmt.Errorf("no passphrase provided")
+	}
+	return string(passphrase), nil
 }
 
 func init() {
