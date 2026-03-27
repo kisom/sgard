@@ -7,9 +7,9 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 5 complete. All 5 steps done (28–32).
+**Phase:** Phase 5 complete. File exclusion feature added.
 
-**Last updated:** 2026-03-24
+**Last updated:** 2026-03-27
 
 ## Completed Steps
 
@@ -113,3 +113,4 @@ Phase 6: Manifest Signing (to be planned).
 | 2026-03-25 | — | `sgard remote set/show`: persistent remote config in `<repo>/remote.yaml` (addr, tls, tls_ca). |
 | 2026-03-26 | — | `sgard list` remote support: uses `resolveRemoteConfig()` to list server manifest via `PullManifest` RPC. Client `List()` method added. |
 | 2026-03-26 | — | Version derived from git tags via `VERSION` file. flake.nix reads `VERSION`; Makefile `version` target syncs from latest tag, `build` injects via ldflags. |
+| 2026-03-27 | — | File exclusion: `sgard exclude`/`include` commands, `Manifest.Exclude` field, Add/MirrorUp/MirrorDown respect exclusions, directory exclusion support. 8 tests. |

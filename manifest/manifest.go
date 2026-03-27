@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -48,7 +49,30 @@ type Manifest struct {
 	Updated    time.Time   `yaml:"updated"`
 	Message    string      `yaml:"message,omitempty"`
 	Files      []Entry     `yaml:"files"`
+	Exclude    []string    `yaml:"exclude,omitempty"`
 	Encryption *Encryption `yaml:"encryption,omitempty"`
+}
+
+// IsExcluded reports whether the given tilde path should be excluded from
+// tracking. A path is excluded if it matches an exclude entry exactly, or
+// if it falls under an excluded directory (an exclude entry that is a prefix
+// followed by a path separator).
+func (m *Manifest) IsExcluded(tildePath string) bool {
+	for _, ex := range m.Exclude {
+		if tildePath == ex {
+			return true
+		}
+		// Directory exclusion: if the exclude entry is a prefix of the
+		// path with a separator boundary, the path is under that directory.
+		prefix := ex
+		if !strings.HasSuffix(prefix, "/") {
+			prefix += "/"
+		}
+		if strings.HasPrefix(tildePath, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // New creates a new empty manifest with Version 1 and timestamps set to now.

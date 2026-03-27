@@ -316,6 +316,18 @@ Depends on Steps 17, 18.
 - [x] E2e test: push/pull with targeting labels, restore respects targeting
 - [x] Verify: all tests pass, lint clean, both binaries compile
 
+## Standalone: File Exclusion
+
+- [x] `manifest/manifest.go`: `Exclude []string` field on Manifest, `IsExcluded(tildePath)` method (exact match + directory prefix)
+- [x] `garden/exclude.go`: `Exclude(paths)` and `Include(paths)` methods; Exclude removes already-tracked matching entries
+- [x] `garden/garden.go`: Add's WalkDir checks `IsExcluded`, returns `filepath.SkipDir` for excluded directories
+- [x] `garden/mirror.go`: MirrorUp skips excluded paths; MirrorDown leaves excluded files on disk
+- [x] `cmd/sgard/exclude.go`: `sgard exclude <path>... [--list]`, `sgard include <path>...`
+- [x] `proto/sgard/v1/sgard.proto`: `repeated string exclude = 7` on Manifest; regenerated
+- [x] `server/convert.go`: round-trip Exclude field
+- [x] `garden/exclude_test.go`: 8 tests (add/dedup/remove-tracked/include, Add skips file/dir, MirrorUp skips, MirrorDown leaves alone, IsExcluded prefix matching)
+- [x] Update ARCHITECTURE.md, PROJECT_PLAN.md, PROGRESS.md
+
 ## Phase 6: Manifest Signing
 
 (To be planned — requires trust model design)

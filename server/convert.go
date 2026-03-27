@@ -18,6 +18,7 @@ func ManifestToProto(m *manifest.Manifest) *sgardpb.Manifest {
 		Updated: timestamppb.New(m.Updated),
 		Message: m.Message,
 		Files:   files,
+		Exclude: m.Exclude,
 	}
 	if m.Encryption != nil {
 		pb.Encryption = EncryptionToProto(m.Encryption)
@@ -38,6 +39,7 @@ func ProtoToManifest(p *sgardpb.Manifest) *manifest.Manifest {
 		Updated: p.GetUpdated().AsTime(),
 		Message: p.GetMessage(),
 		Files:   files,
+		Exclude: p.GetExclude(),
 	}
 	if p.GetEncryption() != nil {
 		m.Encryption = ProtoToEncryption(p.GetEncryption())

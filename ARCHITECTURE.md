@@ -129,6 +129,8 @@ All commands operate on a repository directory (default: `~/.sgard`, override wi
 | `sgard prune` | Remove orphaned blobs not referenced by the manifest |
 | `sgard mirror up <path>...` | Sync filesystem → manifest (add new, remove deleted, rehash) |
 | `sgard mirror down <path>... [--force]` | Sync manifest → filesystem (restore + delete untracked) |
+| `sgard exclude <path>... [--list]` | Exclude paths from tracking; `--list` shows current exclusions |
+| `sgard include <path>...` | Remove paths from the exclusion list |
 
 **Workflow example:**
 
@@ -674,6 +676,7 @@ sgard/
   cmd/sgard/              # CLI entry point — one file per command
     main.go               # cobra root command, --repo/--remote/--ssh-key/--tls/--tls-ca flags
     encrypt.go            # sgard encrypt init/add-fido2/remove-slot/list-slots/change-passphrase
+    exclude.go            # sgard exclude/include
     push.go pull.go prune.go mirror.go
     init.go add.go remove.go checkpoint.go
     restore.go status.go verify.go list.go info.go diff.go version.go
@@ -687,6 +690,7 @@ sgard/
     encrypt_fido2.go      # FIDO2Device interface, AddFIDO2Slot, unlock resolution
     fido2_hardware.go     # Real FIDO2 via go-libfido2 (//go:build fido2)
     fido2_nohardware.go   # Stub returning nil (//go:build !fido2)
+    exclude.go            # Exclude/Include methods
     restore.go mirror.go prune.go remove.go verify.go list.go info.go diff.go
     hasher.go             # SHA-256 file hashing
 
@@ -743,6 +747,8 @@ func (g *Garden) MirrorUp(paths []string) error
 func (g *Garden) MirrorDown(paths []string, force bool, confirm func(string) bool) error
 func (g *Garden) Lock(paths []string) error
 func (g *Garden) Unlock(paths []string) error
+func (g *Garden) Exclude(paths []string) error
+func (g *Garden) Include(paths []string) error
 
 // Encryption
 func (g *Garden) EncryptInit(passphrase string) error
@@ -776,7 +782,15 @@ different usernames.
 
 **Adding a directory recurses.** `Add` walks directories and adds each
 file/symlink individually. Directories are not tracked as entries — only
-leaf files and symlinks.
+leaf files and symlinks. Excluded paths (see below) are skipped during walks.
+
+**File exclusion.** The manifest stores an `exclude` list of tilde-form
+paths that should never be tracked. Excluding a directory excludes
+everything under it. Exclusions are checked during `Add` directory walks,
+`MirrorUp` walks, and `MirrorDown` cleanup (excluded files are left alone
+on disk). `sgard exclude` adds paths; `sgard include` removes them. When a
+path is excluded, any already-tracked entries matching it are removed from
+the manifest.
 
 **No history.** Only the latest checkpoint is stored. For versioning, place
 the repo under git — `sgard init` creates a `.gitignore` that excludes

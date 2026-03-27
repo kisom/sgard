@@ -256,6 +256,13 @@ func (g *Garden) Add(paths []string, opts ...AddOptions) error {
 					if err != nil {
 						return err
 					}
+					tilded := toTildePath(path)
+					if g.manifest.IsExcluded(tilded) {
+						if d.IsDir() {
+							return filepath.SkipDir
+						}
+						return nil
+					}
 					if d.IsDir() {
 						return nil
 					}

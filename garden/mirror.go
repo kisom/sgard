@@ -30,6 +30,13 @@ func (g *Garden) MirrorUp(paths []string) error {
 			if walkErr != nil {
 				return walkErr
 			}
+			tilded := toTildePath(path)
+			if g.manifest.IsExcluded(tilded) {
+				if d.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
 			if d.IsDir() {
 				return nil
 			}
@@ -154,6 +161,9 @@ func (g *Garden) MirrorDown(paths []string, force bool, confirm func(string) boo
 				return walkErr
 			}
 			if d.IsDir() {
+				if g.manifest.IsExcluded(toTildePath(path)) {
+					return filepath.SkipDir
+				}
 				// Collect directories for potential cleanup (post-order).
 				if path != abs {
 					emptyDirs = append(emptyDirs, path)
@@ -161,6 +171,10 @@ func (g *Garden) MirrorDown(paths []string, force bool, confirm func(string) boo
 				return nil
 			}
 			if tracked[path] {
+				return nil
+			}
+			// Excluded paths are left alone on disk.
+			if g.manifest.IsExcluded(toTildePath(path)) {
 				return nil
 			}
 			// Untracked file/symlink on disk.

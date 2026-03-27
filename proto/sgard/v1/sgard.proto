@@ -46,6 +46,7 @@ message Manifest {
   string                      message    = 4;
   repeated ManifestEntry      files      = 5;
   Encryption                  encryption = 6;
+  repeated string             exclude    = 7;
 }
 
 // BlobChunk is one piece of a streamed blob. The first chunk for a given
