@@ -200,7 +200,7 @@ func TestAddSymlink(t *testing.T) {
 	}
 }
 
-func TestAddDuplicateRejected(t *testing.T) {
+func TestAddDuplicateIsIdempotent(t *testing.T) {
 	root := t.TempDir()
 	repoDir := filepath.Join(root, "repo")
 
@@ -218,8 +218,19 @@ func TestAddDuplicateRejected(t *testing.T) {
 		t.Fatalf("first Add: %v", err)
 	}
 
-	if err := g.Add([]string{testFile}); err == nil {
-		t.Fatal("second Add of same path should fail")
+	if err := g.Add([]string{testFile}); err != nil {
+		t.Fatalf("second Add of same path should be idempotent: %v", err)
+	}
+
+	entries := g.List()
+	count := 0
+	for _, e := range entries {
+		if e.Path == toTildePath(testFile) {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 entry, got %d", count)
 	}
 }
 

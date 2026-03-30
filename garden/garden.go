@@ -239,7 +239,7 @@ func (g *Garden) Add(paths []string, opts ...AddOptions) error {
 				// Track the directory itself as a structural entry.
 				tilded := toTildePath(abs)
 				if g.findEntry(tilded) != nil {
-					return fmt.Errorf("already tracking %s", tilded)
+					continue
 				}
 				entry := manifest.Entry{
 					Path:    tilded,
@@ -277,7 +277,7 @@ func (g *Garden) Add(paths []string, opts ...AddOptions) error {
 				}
 			}
 		} else {
-			if err := g.addEntry(abs, info, now, false, o); err != nil {
+			if err := g.addEntry(abs, info, now, true, o); err != nil {
 				return err
 			}
 		}

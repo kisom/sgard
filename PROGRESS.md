@@ -7,9 +7,9 @@ ARCHITECTURE.md for design details.
 
 ## Current Status
 
-**Phase:** Phase 5 complete. File exclusion feature added.
+**Phase:** Phase 5 complete. File exclusion feature added. Add is now idempotent.
 
-**Last updated:** 2026-03-27
+**Last updated:** 2026-03-30
 
 ## Completed Steps
 
@@ -114,3 +114,4 @@ Phase 6: Manifest Signing (to be planned).
 | 2026-03-26 | — | `sgard list` remote support: uses `resolveRemoteConfig()` to list server manifest via `PullManifest` RPC. Client `List()` method added. |
 | 2026-03-26 | — | Version derived from git tags via `VERSION` file. flake.nix reads `VERSION`; Makefile `version` target syncs from latest tag, `build` injects via ldflags. |
 | 2026-03-27 | — | File exclusion: `sgard exclude`/`include` commands, `Manifest.Exclude` field, Add/MirrorUp/MirrorDown respect exclusions, directory exclusion support. 8 tests. |
+| 2026-03-30 | — | Idempotent add: `sgard add` silently skips already-tracked files/directories instead of erroring, enabling glob-based workflows. |
